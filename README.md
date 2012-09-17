@@ -17,6 +17,12 @@ The constructor takes 5 params:
 
 The constructor throws UnsupportedContentException - Per design only strings of local paths, Longs of thumb IDs, or URIs of remote media are supported
 
+<B> Example </B>
+
+new LazyLoadingAdapter<String>(mActivity, mGrid, (int) (scale * 63), (int) (scale * 63), null, 4, true);
+
+You can pass null as the List gracefully. Then you would use setPathsIDsOrUris(List<E> pathsIdsOrUris) and notifyDataSetChanged() to update your data.
+
 Copyright 2012 Noah Seidman
 
 Licensed under the Apache License, Version 2.0 (the "License");
