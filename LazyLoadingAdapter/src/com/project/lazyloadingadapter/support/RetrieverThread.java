@@ -31,11 +31,12 @@ import android.support.v4.util.LruCache;
 import android.widget.Toast;
 import com.project.lazyloadingadapter.R;
 import com.project.lazyloadingadapter.helpers.Log;
+import com.project.lazyloadingadapter.objects.LoadingCompleteCallback;
 import com.project.lazyloadingadapter.objects.QueueObject;
 public class RetrieverThread<E> extends Thread
 {
-    private Context mContext;
     private static final String TAG = RetrieverThread.class.getSimpleName();
+    private Context mContext;
     private LoadingCompleteCallback<E> mLoadingCompleteCallback;
     private BitmapFactory.Options mOptions;
     private ArrayBlockingQueue<QueueObject<E>> mArrayBlockingQueue;
@@ -43,17 +44,14 @@ public class RetrieverThread<E> extends Thread
     private LruCache<Object, Bitmap> mCache;
     private int mWidth;
     private int mHeight;
-    private Handler uiThreadHandler;
-    private WaitingNetwork waitingNetwork;
-    private ConnectivityManager cm;
-    private NetworkInfo mobileInfo;
-    private NetworkInfo wifiInfo;
-    private NetworkInfo wimaxInfo;
+    private Handler mUiThreadHandler;
+    private WaitingNetwork mWaitingNetwork;
+    private ConnectivityManager mConnectivityManager;
+    private NetworkInfo mMobileInfo;
+    private NetworkInfo mWifiInfo;
+    private NetworkInfo mWiMaxInfo;
     private boolean mIsImages;
-    public interface LoadingCompleteCallback<E>
-    {
-	public void updateImageInUI(QueueObject<E> object, Bitmap image);
-    }
+
     private class WaitingNetwork implements Runnable
     {
 	@Override
@@ -63,19 +61,19 @@ public class RetrieverThread<E> extends Thread
 		Toast.makeText(mContext, mContext.getResources().getString(R.string.waiting_network), Toast.LENGTH_SHORT).show();
 	}
     }
-    public RetrieverThread(Context context, Handler handler, LoadingCompleteCallback<E> loadingCompleteCallback, LruCache<Object, Bitmap> cache, int width, int height, boolean isImages)
+    public RetrieverThread(Context context, Handler uiThreadHandler, LoadingCompleteCallback<E> loadingCompleteCallback, LruCache<Object, Bitmap> cache, int width, int height, boolean isImages)
     {
 	mContext = context;
 	mIsImages = isImages;
-	uiThreadHandler = handler;
-	waitingNetwork = new WaitingNetwork();
+	mUiThreadHandler = uiThreadHandler;
+	mWaitingNetwork = new WaitingNetwork();
 	mLoadingCompleteCallback = loadingCompleteCallback;
 	mOptions = new BitmapFactory.Options();
 	mOptions.inPurgeable = true;
 	mOptions.inInputShareable = true;
 	mOptions.inDither = true;
 	mArrayBlockingQueue = new ArrayBlockingQueue<QueueObject<E>>(200, true);
-	cm = ((ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE));
+	mConnectivityManager = ((ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE));
 	mCache = cache;
 	mWidth = width;
 	mHeight = height;
@@ -206,7 +204,7 @@ public class RetrieverThread<E> extends Thread
 	while (!checkNetworkState(mContext))
 	{
 	    Thread.sleep(3000);
-	    uiThreadHandler.post(waitingNetwork);
+	    mUiThreadHandler.post(mWaitingNetwork);
 	}
 	HttpEntity entity = setupHttpEntity(object);
 	BufferedHttpEntity bufHttpEntity = new BufferedHttpEntity(entity);
@@ -259,22 +257,16 @@ public class RetrieverThread<E> extends Thread
 	    {
 		temp = processImagePath(cursor.getString(cursor.getColumnIndex(Images.Media.DATA)), pathOrId);
 	    }
-	    if (cursor != null && !cursor.isClosed())
-	    {
-		cursor.close();
-	    }
+	    closeCursor(cursor);
 	}
 	if (temp == null)
 	{
-		Cursor cursor = mContext.getContentResolver().query(Uri.withAppendedPath(Images.Media.INTERNAL_CONTENT_URI, Long.toString(id)), new String[]{Images.Media.DATA}, null, null, null);
-		if (cursor != null && cursor.moveToFirst())
-		{
-			temp = processImagePath(cursor.getString(cursor.getColumnIndex(Images.Media.DATA)), pathOrId);
-		}
-		if (cursor != null && !cursor.isClosed())
-		{
-			cursor.close();
-		}
+	    Cursor cursor = mContext.getContentResolver().query(Uri.withAppendedPath(Images.Media.INTERNAL_CONTENT_URI, Long.toString(id)), new String[]{Images.Media.DATA}, null, null, null);
+	    if (cursor != null && cursor.moveToFirst())
+	    {
+		temp = processImagePath(cursor.getString(cursor.getColumnIndex(Images.Media.DATA)), pathOrId);
+	    }
+	    closeCursor(cursor);
 	}
 	mCache.put(pathOrId, temp);
 	return temp;
@@ -292,22 +284,16 @@ public class RetrieverThread<E> extends Thread
 	    {
 		temp = processVideoPath(cursor.getString(cursor.getColumnIndex(Video.Media.DATA)), pathOrId);
 	    }
-	    if (cursor != null && !cursor.isClosed())
-	    {
-		cursor.close();
-	    }
+		closeCursor(cursor);
 	}
 	if (temp == null)
 	{
-		Cursor cursor = mContext.getContentResolver().query(Uri.withAppendedPath(Video.Media.INTERNAL_CONTENT_URI, Long.toString(id)), new String[]{Video.Media.DATA}, null, null, null);
-		if (cursor != null && cursor.moveToFirst())
-		{
-			temp = processVideoPath(cursor.getString(cursor.getColumnIndex(Video.Media.DATA)), pathOrId);
-		}
-		if (cursor != null && !cursor.isClosed())
-		{
-			cursor.close();
-		}
+	    Cursor cursor = mContext.getContentResolver().query(Uri.withAppendedPath(Video.Media.INTERNAL_CONTENT_URI, Long.toString(id)), new String[]{Video.Media.DATA}, null, null, null);
+	    if (cursor != null && cursor.moveToFirst())
+	    {
+		temp = processVideoPath(cursor.getString(cursor.getColumnIndex(Video.Media.DATA)), pathOrId);
+	    }
+	    closeCursor(cursor);
 	}
 	mCache.put(pathOrId, temp);
 	return temp;
@@ -329,6 +315,9 @@ public class RetrieverThread<E> extends Thread
 	    mArrayBlockingQueue.offer(new QueueObject<E>(1, null, null, null));
 	}
     }
+    /**
+     * @param QueueObject
+     */
     public void loadImage(final QueueObject<E> object)
     {
 	// Queue object has an override equals method, thus remove and offer
@@ -360,11 +349,16 @@ public class RetrieverThread<E> extends Thread
     private boolean checkNetworkState(Context context)
     {
 	// Check every aspect of wifi and mobile connections
-	mobileInfo = cm.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
-	wifiInfo = cm.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
-	wimaxInfo = cm.getNetworkInfo(ConnectivityManager.TYPE_WIMAX);
-	if ((wimaxInfo != null && wimaxInfo.isAvailable()) || (wimaxInfo != null && wimaxInfo.isConnected()) || (wifiInfo != null && wifiInfo.isAvailable()) || (wifiInfo != null && wifiInfo.isConnected()) || (mobileInfo != null && mobileInfo.isAvailable()) || (mobileInfo != null && mobileInfo.isConnected()))
+	mMobileInfo = mConnectivityManager.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
+	mWifiInfo = mConnectivityManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+	mWiMaxInfo = mConnectivityManager.getNetworkInfo(ConnectivityManager.TYPE_WIMAX);
+	if ((mWiMaxInfo != null && mWiMaxInfo.isAvailable()) || (mWiMaxInfo != null && mWiMaxInfo.isConnected()) || (mWifiInfo != null && mWifiInfo.isAvailable()) || (mWifiInfo != null && mWifiInfo.isConnected()) || (mMobileInfo != null && mMobileInfo.isAvailable()) || (mMobileInfo != null && mMobileInfo.isConnected()))
 	    return true;
 	return false;
+    }
+    private void closeCursor(Cursor cursor)
+    {
+	if (cursor != null && !cursor.isClosed())
+	    cursor.close();
     }
 }
