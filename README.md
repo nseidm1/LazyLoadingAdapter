@@ -27,6 +27,10 @@ new LazyLoadingAdapter<String>(mActivity, mGrid, (int) (scale * 63), (int) (scal
 
 You can pass null as the List gracefully. Then you would use setPathsIDsOrUris(List<E> pathsIdsOrUris) and notifyDataSetChanged() to update your data.
 
+<B> WARNING </B>
+
+!!!!!You MUST close the adapter. You will leak the loader thread if the adapter is not closed in an onDetroy or wherever most applicable!!!!
+
 Copyright 2012 Noah Seidman
 
 Licensed under the Apache License, Version 2.0 (the "License");
