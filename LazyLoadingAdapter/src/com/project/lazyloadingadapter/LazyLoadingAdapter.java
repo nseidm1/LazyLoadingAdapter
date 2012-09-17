@@ -1,4 +1,5 @@
 package com.project.lazyloadingadapter;
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -31,7 +32,7 @@ import com.project.lazyloadingadapter.support.RetrieverThread.AltImageLoadListen
  * @author Noah Seidman
  */
 @SuppressWarnings("deprecation")
-public class LazyLoadingAdapter<E> extends BaseAdapter implements AltImageLoadListener<E>
+public class LazyLoadingAdapter<E> extends BaseAdapter implements AltImageLoadListener<E>, Closeable
 {
     private Context mContext;
     private int mWidth;
@@ -49,6 +50,8 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements AltImageLoadLi
     protected static final int IMAGEVIEWINDEX = 1;
     private int mDegressRotation = 0;
     /**
+     * Warning - Do not forget to close() the adapter in onDetroy to stop the loader thread
+     * <p>
      * A lazy loading image adapter using an array blocking queue.This
      * adapter works well with images of any size. 
      * <p>
@@ -221,8 +224,9 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements AltImageLoadLi
 	return mPathsIDsOrUris.get(position);
     }
     /**
-     * This is absolutely mandatory to use in onDestroy() or wherever otherwise applicable or appropriate. If this is not called you will leak the retriever thread. Leakie is no goodie.
+     * This is absolutely mandatory to use in onDestroy() or wherever applicable or appropriate. If this is not called you will leak the retriever thread. Leakie is no goodie.
      */
+    @Override
     public void close()
     {
 	mAltImageRetrieverThread.stopThread();
