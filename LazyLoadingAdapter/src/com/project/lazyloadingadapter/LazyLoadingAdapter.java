@@ -177,11 +177,10 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements AltImageLoadLi
      * @param position
      * Remove the highlight from the specific item position.
      */
-    public void removeHighlight(E position)
+    public void removeHighlight(int position)
     {
 	mAddHighlight.remove(position);
     }
-    
     /**
      * Clear all highlighted position.
      */
