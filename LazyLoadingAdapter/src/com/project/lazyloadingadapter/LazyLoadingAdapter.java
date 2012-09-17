@@ -194,7 +194,7 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements AltImageLoadLi
      * @throws UnsupportedContentException
      * Per design only strings of local paths, Longs of thumb IDs, or URIs of remote media are supported
      */
-    public void setPathsOrIds(ArrayList<E> pathsIDsOrUris) throws UnsupportedContentException
+    public void setPathsIDsOrUris(ArrayList<E> pathsIDsOrUris) throws UnsupportedContentException
     {
 	testData(pathsIDsOrUris);
 	mPathsIDsOrUris = pathsIDsOrUris;
