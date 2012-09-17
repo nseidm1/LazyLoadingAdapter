@@ -15,11 +15,6 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.entity.BufferedHttpEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
-import com.project.lazyloadingadapter.R;
-import com.project.lazyloadingadapter.R.drawable;
-import com.project.lazyloadingadapter.R.string;
-import com.project.lazyloadingadapter.helpers.Log;
-import com.project.lazyloadingadapter.objects.QueueObject;
 import android.content.Context;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -34,6 +29,9 @@ import android.provider.MediaStore.Images;
 import android.provider.MediaStore.Video;
 import android.support.v4.util.LruCache;
 import android.widget.Toast;
+import com.project.lazyloadingadapter.R;
+import com.project.lazyloadingadapter.helpers.Log;
+import com.project.lazyloadingadapter.objects.QueueObject;
 public class RetrieverThread<E> extends Thread
 {
     private Context mContext;
@@ -45,7 +43,6 @@ public class RetrieverThread<E> extends Thread
     private LruCache<Object, Bitmap> mCache;
     private int mWidth;
     private int mHeight;
-    private static final String KILL = "KILL";
     private Handler uiThreadHandler;
     private WaitingNetwork waitingNetwork;
     private ConnectivityManager cm;
@@ -98,7 +95,7 @@ public class RetrieverThread<E> extends Thread
 		// overkill.
 		boolean success = false;
 		int counter = 0;
-		while (success == false && counter < 10 && object != null && object.getPathIDOrUri() != null && !object.getPathIDOrUri().toString().equals(KILL))
+		while (success == false && counter < 10 && object != null && object.getPathIDOrUri() != null)
 		{
 		    Bitmap temp;
 		    try
@@ -343,14 +340,13 @@ public class RetrieverThread<E> extends Thread
 	mCache.put(pathOrId, temp);
 	return temp;
     }
-    @SuppressWarnings("unchecked")
     public synchronized void stopThread()
     {
 	// Set the while loop boolean to false, and add a KILL object to the queue to unblock it if necessary
 	mAlive = false;
 	if (mArrayBlockingQueue.isEmpty())
 	{
-	    mArrayBlockingQueue.offer(new QueueObject<E>(1, (E)"KILL", null, null));
+	    mArrayBlockingQueue.offer(new QueueObject<E>(1, null, null, null));
 	}
     }
     public void loadImage(final QueueObject<E> object)
