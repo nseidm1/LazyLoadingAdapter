@@ -24,10 +24,10 @@ import android.widget.ImageView.ScaleType;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ViewSwitcher;
+import com.project.lazyloadingadapter.objects.LoadingCompleteCallback;
 import com.project.lazyloadingadapter.objects.QueueObject;
 import com.project.lazyloadingadapter.objects.UnsupportedContentException;
 import com.project.lazyloadingadapter.support.RetrieverThread;
-import com.project.lazyloadingadapter.support.RetrieverThread.LoadingCompleteCallback;
 /**
  * @author Noah Seidman
  */
