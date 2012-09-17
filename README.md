@@ -3,6 +3,16 @@ LazyLoadingAdapter
 
 A highly customizable and extendable lazy loading adapter class. This project has countless customization methods, strategic callbacks, and a built in LRU caching system and support for position highlighting.
 
+The constructor takes 5 params:
+
+1) context 
+2) view  - Your AbsListView or your Gallery Widget
+3) height - The height of your image
+4) width - The width of your image
+5) pathsOrIds - A List of Strings, Long IDs for "Thumbnails.getThumbnail()" from the phone's Image/Video content provider, or URIs of http addresses
+
+The constructor throws UnsupportedContentException - Per design only strings of local paths, Longs of thumb IDs, or URIs of remote media are supported
+
 Copyright 2012 Noah Seidman
 
 Licensed under the Apache License, Version 2.0 (the "License");
