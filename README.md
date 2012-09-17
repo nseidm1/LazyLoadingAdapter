@@ -6,9 +6,13 @@ A highly customizable and extendable lazy loading adapter class. This project ha
 The constructor takes 5 params:
 
 1) context 
+<p>
 2) view  - Your AbsListView or your Gallery Widget
+<p>
 3) height - The height of your image
+<p>
 4) width - The width of your image
+<p>
 5) pathsOrIds - A List of Strings, Long IDs for "Thumbnails.getThumbnail()" from the phone's Image/Video content provider, or URIs of http addresses
 
 The constructor throws UnsupportedContentException - Per design only strings of local paths, Longs of thumb IDs, or URIs of remote media are supported
