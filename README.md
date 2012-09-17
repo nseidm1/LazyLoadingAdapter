@@ -1,7 +1,7 @@
 LazyLoadingAdapter
 ==================
 
-This project is used in Shady Photo & Video Safe 3.0 live on the Play Store: <a href="https://play.google.com/store/apps/details?id=com.project.memoryerrorsafetwo">
+This project is used in Shady Photo & Video Safe 3.0 live on the Play Store: <a href="https://play.google.com/store/apps/details?id=com.project.memoryerrorsafetwo">Shady Photo & Video Safe 3.0</a>
 
 A highly customizable and extendable lazy loading adapter class. This project has countless customization methods, strategic callbacks, and a built in LRU caching system and support for position highlighting.
 
