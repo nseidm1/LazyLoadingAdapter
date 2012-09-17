@@ -27,12 +27,12 @@ import android.widget.ViewSwitcher;
 import com.project.lazyloadingadapter.objects.QueueObject;
 import com.project.lazyloadingadapter.objects.UnsupportedContentException;
 import com.project.lazyloadingadapter.support.RetrieverThread;
-import com.project.lazyloadingadapter.support.RetrieverThread.AltImageLoadListener;
+import com.project.lazyloadingadapter.support.RetrieverThread.LoadingCompleteCallback;
 /**
  * @author Noah Seidman
  */
 @SuppressWarnings("deprecation")
-public class LazyLoadingAdapter<E> extends BaseAdapter implements AltImageLoadListener<E>, Closeable
+public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingCompleteCallback<E>, Closeable
 {
     private Context mContext;
     private int mWidth;

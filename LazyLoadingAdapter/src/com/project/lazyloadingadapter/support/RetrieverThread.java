@@ -36,10 +36,10 @@ public class RetrieverThread<E> extends Thread
 {
     private Context mContext;
     private static final String TAG = RetrieverThread.class.getSimpleName();
-    private AltImageLoadListener<E> mListener = null;
+    private LoadingCompleteCallback<E> mLoadingCompleteCallback;
     private BitmapFactory.Options mOptions;
     private ArrayBlockingQueue<QueueObject<E>> mArrayBlockingQueue;
-    private boolean mAlive;
+    private boolean mAlive = true;
     private LruCache<Object, Bitmap> mCache;
     private int mWidth;
     private int mHeight;
@@ -50,7 +50,7 @@ public class RetrieverThread<E> extends Thread
     private NetworkInfo wifiInfo;
     private NetworkInfo wimaxInfo;
     private boolean mIsImages;
-    public interface AltImageLoadListener<E>
+    public interface LoadingCompleteCallback<E>
     {
 	public void updateImageInUI(QueueObject<E> object, Bitmap image);
     }
@@ -63,20 +63,19 @@ public class RetrieverThread<E> extends Thread
 		Toast.makeText(mContext, mContext.getResources().getString(R.string.waiting_network), Toast.LENGTH_SHORT).show();
 	}
     }
-    public RetrieverThread(Context context, Handler handler, AltImageLoadListener<E> lListener, LruCache<Object, Bitmap> cache, int width, int height, boolean isImages)
+    public RetrieverThread(Context context, Handler handler, LoadingCompleteCallback<E> loadingCompleteCallback, LruCache<Object, Bitmap> cache, int width, int height, boolean isImages)
     {
 	mContext = context;
 	mIsImages = isImages;
 	uiThreadHandler = handler;
 	waitingNetwork = new WaitingNetwork();
-	mListener = lListener;
+	mLoadingCompleteCallback = loadingCompleteCallback;
 	mOptions = new BitmapFactory.Options();
 	mOptions.inPurgeable = true;
 	mOptions.inInputShareable = true;
 	mOptions.inDither = true;
 	mArrayBlockingQueue = new ArrayBlockingQueue<QueueObject<E>>(200, true);
 	cm = ((ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE));
-	mAlive = true;
 	mCache = cache;
 	mWidth = width;
 	mHeight = height;
@@ -148,7 +147,7 @@ public class RetrieverThread<E> extends Thread
 			}
 			// If the cache contains the object just update it in
 			// the UI
-			mListener.updateImageInUI(object, temp);
+			mLoadingCompleteCallback.updateImageInUI(object, temp);
 			success = true;
 		    }
 		    catch (OutOfMemoryError e)
@@ -164,31 +163,12 @@ public class RetrieverThread<E> extends Thread
 			counter++;
 			Log.e(TAG, "out of memory decoding image");
 		    }
-		    catch (IOException e)
-		    {
-			// An IO exception likely doesn't entail the image isn't
-			// ultimately retrievable.
-			// Re-add image to queue
-			// Success = true is set here, the image is re-added to
-			// the queue and the next image is processed.
-			loadImage(object);
-			Log.e(TAG, "input output exception decoding image");
-			success = true;
-		    }
-		    catch (URISyntaxException e)
+		    catch (Exception e)
 		    {
 			// Cache a missing image placeholder, and update the UI
 			temp = cacheMissingImagePlaceholder(object);
-			mListener.updateImageInUI(object, temp);
+			mLoadingCompleteCallback.updateImageInUI(object, temp);
 			Log.e(TAG, "uri syntax exception decoding image");
-			success = true;
-		    }
-		    catch (NullPointerException e)
-		    {
-			// Cache a missing image placeholder, and update the UI
-			temp = cacheMissingImagePlaceholder(object);
-			mListener.updateImageInUI(object, temp);
-			Log.e(TAG, "null pointer exception decoding image");
 			success = true;
 		    }
 		}
