@@ -68,6 +68,7 @@ public class RetrieverThread<E> extends Thread
 	mWidth = width;
 	mHeight = height;
 	mIsImages = isImages;
+	Log.d(TAG, "Is Images: " + mIsImages);
 	mUiThreadHandler = uiThreadHandler;
 	mWaitingNetwork = new WaitingNetwork();
 	mLoadingCompleteCallback = loadingCompleteCallback;
@@ -126,16 +127,17 @@ public class RetrieverThread<E> extends Thread
 			    }
 			    else
 			    {
-				//If we get this far it's a String
+				//If it gets this far it has to be a string
 				if (mIsImages)
 				{
 				    temp = processImagePath((String) object.getPathIDOrUri(), object.getPathIDOrUri());
 				}
-				// lets test if it's a video file
+				//Here it's a video file
 				else
 				{
+				    Log.d(TAG, "Decoding Video File");
 				    temp = processVideoPath((String) object.getPathIDOrUri(), object.getPathIDOrUri());
-				}
+				}			    
 			    }
 			}
 			else
@@ -165,6 +167,7 @@ public class RetrieverThread<E> extends Thread
 			// Cache a missing image placeholder, and update the UI
 			temp = cacheMissingImagePlaceholder(object);
 			mLoadingCompleteCallback.updateImageInUI(object, temp);
+			e.printStackTrace();
 			Log.e(TAG, "uri syntax exception decoding image");
 			success = true;
 		    }
