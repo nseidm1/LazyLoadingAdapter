@@ -7,7 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
@@ -27,31 +27,31 @@ import android.os.Handler;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Images;
 import android.provider.MediaStore.Video;
-import android.support.v4.util.LruCache;
 import android.widget.Toast;
 import com.project.lazyloadingadapter.R;
 import com.project.lazyloadingadapter.helpers.Log;
+import com.project.lazyloadingadapter.objects.CustomArrayBlockingQueue;
+import com.project.lazyloadingadapter.objects.CustomLRUCache;
 import com.project.lazyloadingadapter.objects.LoadingCompleteCallback;
 import com.project.lazyloadingadapter.objects.QueueObject;
 public class RetrieverThread<E> extends Thread
 {
     private static final String TAG = RetrieverThread.class.getSimpleName();
     private Context mContext;
-    private LoadingCompleteCallback<E> mLoadingCompleteCallback;
-    private BitmapFactory.Options mOptions;
-    private ArrayBlockingQueue<QueueObject<E>> mArrayBlockingQueue;
-    private boolean mAlive = true;
-    private LruCache<Object, Bitmap> mCache;
     private int mWidth;
     private int mHeight;
+    private boolean mIsImages;
+    private boolean mAlive = true;
+    private CustomLRUCache<E> mCache;
+    private BitmapFactory.Options mOptions;
     private Handler mUiThreadHandler;
     private WaitingNetwork mWaitingNetwork;
     private ConnectivityManager mConnectivityManager;
     private NetworkInfo mMobileInfo;
     private NetworkInfo mWifiInfo;
     private NetworkInfo mWiMaxInfo;
-    private boolean mIsImages;
-
+    private LoadingCompleteCallback<E> mLoadingCompleteCallback;
+    private CustomArrayBlockingQueue<E> mArrayBlockingQueue = new CustomArrayBlockingQueue<E>(200, true);
     private class WaitingNetwork implements Runnable
     {
 	@Override
@@ -61,9 +61,12 @@ public class RetrieverThread<E> extends Thread
 		Toast.makeText(mContext, mContext.getResources().getString(R.string.waiting_network), Toast.LENGTH_SHORT).show();
 	}
     }
-    public RetrieverThread(Context context, Handler uiThreadHandler, LoadingCompleteCallback<E> loadingCompleteCallback, LruCache<Object, Bitmap> cache, int width, int height, boolean isImages)
+    public RetrieverThread(Context context, Handler uiThreadHandler, LoadingCompleteCallback<E> loadingCompleteCallback, CustomLRUCache<E> cache, int width, int height, boolean isImages)
     {
 	mContext = context;
+	mCache = cache;
+	mWidth = width;
+	mHeight = height;
 	mIsImages = isImages;
 	mUiThreadHandler = uiThreadHandler;
 	mWaitingNetwork = new WaitingNetwork();
@@ -72,15 +75,12 @@ public class RetrieverThread<E> extends Thread
 	mOptions.inPurgeable = true;
 	mOptions.inInputShareable = true;
 	mOptions.inDither = true;
-	mArrayBlockingQueue = new ArrayBlockingQueue<QueueObject<E>>(200, true);
 	mConnectivityManager = ((ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE));
-	mCache = cache;
-	mWidth = width;
-	mHeight = height;
     }
     @Override
     public void run()
     {
+	Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
 	while (mAlive)
 	{
 	    try
@@ -188,7 +188,7 @@ public class RetrieverThread<E> extends Thread
 	    try
 	    {
 		temp = ThumbnailUtils.extractThumbnail(BitmapFactory.decodeResource(mContext.getResources(), R.drawable.missing_file, mOptions), mWidth, mHeight, ThumbnailUtils.OPTIONS_RECYCLE_INPUT);
-		mCache.put(object.getPosition(), temp);
+		mCache.put(object.getPathIDOrUri(), temp);
 		success = true;
 	    }
 	    catch (OutOfMemoryError e)
@@ -238,13 +238,7 @@ public class RetrieverThread<E> extends Thread
 	HttpEntity entity = response.getEntity();
 	return entity;
     }
-    private Bitmap processVideoPath(String path, Object pathOrId) throws NullPointerException, OutOfMemoryError
-    {
-	Bitmap temp = ThumbnailUtils.extractThumbnail(ThumbnailUtils.createVideoThumbnail(path, MediaStore.Video.Thumbnails.MINI_KIND), mWidth, mHeight, ThumbnailUtils.OPTIONS_RECYCLE_INPUT);
-	mCache.put(pathOrId, temp);
-	return temp;
-    }
-    private Bitmap processImageThumb(Long id, Object pathOrId) throws NullPointerException, OutOfMemoryError
+    private Bitmap processImageThumb(Long id, E pathIDOrUri) throws NullPointerException, OutOfMemoryError
     {
 	// No need to prescale, it's gonna be tiny already
 	Bitmap temp = ThumbnailUtils.extractThumbnail(MediaStore.Images.Thumbnails.getThumbnail(mContext.getContentResolver(), id, MediaStore.Images.Thumbnails.MICRO_KIND, null), mWidth, mHeight, ThumbnailUtils.OPTIONS_RECYCLE_INPUT);
@@ -255,7 +249,7 @@ public class RetrieverThread<E> extends Thread
 	    { Images.Media.DATA }, null, null, null);
 	    if (cursor != null && cursor.moveToFirst())
 	    {
-		temp = processImagePath(cursor.getString(cursor.getColumnIndex(Images.Media.DATA)), pathOrId);
+		temp = processImagePath(cursor.getString(cursor.getColumnIndex(Images.Media.DATA)), pathIDOrUri);
 	    }
 	    closeCursor(cursor);
 	}
@@ -264,14 +258,14 @@ public class RetrieverThread<E> extends Thread
 	    Cursor cursor = mContext.getContentResolver().query(Uri.withAppendedPath(Images.Media.INTERNAL_CONTENT_URI, Long.toString(id)), new String[]{Images.Media.DATA}, null, null, null);
 	    if (cursor != null && cursor.moveToFirst())
 	    {
-		temp = processImagePath(cursor.getString(cursor.getColumnIndex(Images.Media.DATA)), pathOrId);
+		temp = processImagePath(cursor.getString(cursor.getColumnIndex(Images.Media.DATA)), pathIDOrUri);
 	    }
 	    closeCursor(cursor);
 	}
-	mCache.put(pathOrId, temp);
+	mCache.put(pathIDOrUri, temp);
 	return temp;
     }
-    private Bitmap processVideoThumb(Long id, Object pathOrId) throws NullPointerException, OutOfMemoryError
+    private Bitmap processVideoThumb(Long id, E pathIDOrUri) throws NullPointerException, OutOfMemoryError
     {
 	// No need to prescale, it's gonna be tiny already
 	Bitmap temp = ThumbnailUtils.extractThumbnail(MediaStore.Video.Thumbnails.getThumbnail(mContext.getContentResolver(), id, MediaStore.Images.Thumbnails.MICRO_KIND, null), mWidth, mHeight, ThumbnailUtils.OPTIONS_RECYCLE_INPUT);
@@ -282,7 +276,7 @@ public class RetrieverThread<E> extends Thread
 	    { Video.Media.DATA }, null, null, null);
 	    if (cursor != null && cursor.moveToFirst())
 	    {
-		temp = processVideoPath(cursor.getString(cursor.getColumnIndex(Video.Media.DATA)), pathOrId);
+		temp = processVideoPath(cursor.getString(cursor.getColumnIndex(Video.Media.DATA)), pathIDOrUri);
 	    }
 		closeCursor(cursor);
 	}
@@ -291,19 +285,25 @@ public class RetrieverThread<E> extends Thread
 	    Cursor cursor = mContext.getContentResolver().query(Uri.withAppendedPath(Video.Media.INTERNAL_CONTENT_URI, Long.toString(id)), new String[]{Video.Media.DATA}, null, null, null);
 	    if (cursor != null && cursor.moveToFirst())
 	    {
-		temp = processVideoPath(cursor.getString(cursor.getColumnIndex(Video.Media.DATA)), pathOrId);
+		temp = processVideoPath(cursor.getString(cursor.getColumnIndex(Video.Media.DATA)), pathIDOrUri);
 	    }
 	    closeCursor(cursor);
 	}
-	mCache.put(pathOrId, temp);
+	mCache.put(pathIDOrUri, temp);
 	return temp;
     }
-    private Bitmap processImagePath(String path, Object pathOrId) throws NullPointerException, OutOfMemoryError
+    private Bitmap processVideoPath(String path, E pathIDOrUri) throws NullPointerException, OutOfMemoryError
+    {
+	Bitmap temp = ThumbnailUtils.extractThumbnail(ThumbnailUtils.createVideoThumbnail(path, MediaStore.Video.Thumbnails.MINI_KIND), mWidth, mHeight, ThumbnailUtils.OPTIONS_RECYCLE_INPUT);
+	mCache.put(pathIDOrUri, temp);
+	return temp;
+    }
+    private Bitmap processImagePath(String path, E pathIDOrUri) throws NullPointerException, OutOfMemoryError
     {
 	// Prescale image for known resolutions that will cause out of memory situations
 	preScaleImage(path);
 	Bitmap temp = ThumbnailUtils.extractThumbnail(BitmapFactory.decodeFile(path, mOptions), mWidth, mHeight, ThumbnailUtils.OPTIONS_RECYCLE_INPUT);
-	mCache.put(pathOrId, temp);
+	mCache.put(pathIDOrUri, temp);
 	return temp;
     }
     public synchronized void stopThread()
@@ -311,20 +311,33 @@ public class RetrieverThread<E> extends Thread
 	// Set the while loop boolean to false, and add a KILL object to the queue to unblock it if necessary
 	mAlive = false;
 	if (mArrayBlockingQueue.isEmpty())
-	{
 	    mArrayBlockingQueue.offer(new QueueObject<E>(1, null, null, null));
-	}
     }
     /**
      * @param QueueObject
+     * @throws InterruptedException 
      */
     public void loadImage(final QueueObject<E> object)
     {
-	// Queue object has an override equals method, thus remove and offer
-	// will ensure only AbsListView items only current
-	// being displayed will be loading at any given time
 	mArrayBlockingQueue.remove(object);
-	mArrayBlockingQueue.offer(object);
+	try
+	{
+	    mArrayBlockingQueue.offer(object, 2000, TimeUnit.MILLISECONDS);
+	}
+	catch (InterruptedException e)
+	{
+	    mUiThreadHandler.post(new Runnable()
+	    {
+		@Override
+		public void run()
+		{
+		    if (mContext != null)
+			Toast.makeText(mContext, mContext.getResources().getString(R.string.overload), Toast.LENGTH_SHORT).show();
+		}
+		
+	    });
+	    e.printStackTrace();
+	}
     }
     private void preScaleImage(String path)
     {

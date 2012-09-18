@@ -36,8 +36,10 @@ public class QueueObject<E>
     {
 	if (!(object instanceof QueueObject))
 	    return false;
-	if (((QueueObject<E>)object).mImageView == mImageView)
+	if (((QueueObject<E>)object).mViewSwitcher == mViewSwitcher)
+	{
 	    return true;
+	}
 	return false;
     }
 }

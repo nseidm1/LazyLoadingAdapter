@@ -1,7 +1,5 @@
 package com.project.lazyloadingadapter;
 import java.io.Closeable;
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import android.content.Context;
@@ -9,9 +7,7 @@ import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Handler;
-import android.support.v4.util.LruCache;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -24,12 +20,18 @@ import android.widget.ImageView.ScaleType;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ViewSwitcher;
+import com.project.lazyloadingadapter.objects.CustomLRUCache;
 import com.project.lazyloadingadapter.objects.LoadingCompleteCallback;
 import com.project.lazyloadingadapter.objects.QueueObject;
 import com.project.lazyloadingadapter.objects.UnsupportedContentException;
 import com.project.lazyloadingadapter.support.RetrieverThread;
 /**
  * @author Noah Seidman
+ */
+/**
+ * @author nseidm1
+ *
+ * @param <E>
  */
 @SuppressWarnings("deprecation")
 public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingCompleteCallback<E>, Closeable
@@ -45,7 +47,7 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
     private boolean mIsImages;
     protected Handler mHandler = new Handler();
     protected RetrieverThread<E> mAltImageRetrieverThread;
-    protected LruCache<Object, Bitmap> mCache;
+    protected CustomLRUCache<E> mCache;
     protected static final int PROGRESSBARINDEX = 0;
     protected static final int IMAGEVIEWINDEX = 1;
     private int mDegressRotation = 0;
@@ -98,14 +100,7 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
 	testView(view);
 	mContext = context;
 	mView = view;
-	mCache = new LruCache<Object, Bitmap>(size * 1024 * 1024)
-	{
-	    @Override
-	    protected int sizeOf(Object key, Bitmap value)
-	    {
-		return value.getRowBytes() * value.getHeight();
-	    }
-	};
+	mCache = new CustomLRUCache<E>(size * 1024 * 1024);
 	mWidth = width;
 	mHeight = height;
 	mAddHighlight = new ArrayList<Integer>();
@@ -194,6 +189,10 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
     /**
      * @param pathsOrIds
      * A List of Strings, Long IDs for "Thumbnails.getThumbnail()" from the phone's Image/Video content provider, or URIs of http addresses
+     * <p>
+     * You'll likely want to call clearCache() after changing your data.
+     * <p>
+     * Don't forget to call notifyDataSetChanged()!
      * @throws UnsupportedContentException
      * Per design only strings of local paths, Longs of thumb IDs, or URIs of remote media are supported
      */
@@ -235,16 +234,13 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
     {
 	public void complete();
     }
+    
     /**
-     * @param clearCacheCallback
+     * Clear the LRU cache
      */
-    public void clearCacheWithCallback(ClearCacheCallback clearCacheCallback)
+    public void clearCache()
     {
-	new PrivateClearCacheTask(clearCacheCallback).execute();
-    }
-    public void clearCache() throws IOException, NullPointerException
-    {
-	new PrivateClearCacheTask(null).execute();
+	mCache.evictAll();
     }
     /**
      * @param degrees
@@ -261,31 +257,6 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
     public int getRotation()
     {
 	return mDegressRotation;
-    }
-    private class PrivateClearCacheTask extends AsyncTask<Void, Void, Void>
-    {
-	private ClearCacheCallback mClearCacheCallback;
-	public PrivateClearCacheTask(ClearCacheCallback clearCacheCallback)
-	{
-	    mClearCacheCallback = clearCacheCallback;
-	}
-	@Override
-	protected Void doInBackground(Void... params)
-	{
-	    mCache.evictAll();
-	    File cacheDirectory = mContext.getCacheDir();
-	    for (File file : cacheDirectory.listFiles())
-	    {
-		file.delete();
-	    }
-	    return null;
-	}
-	@Override
-	public void onPostExecute(Void nada)
-	{
-	    if (mClearCacheCallback != null)
-		mClearCacheCallback.complete();
-	}
     }
     @Override
     public long getItemId(int position)
