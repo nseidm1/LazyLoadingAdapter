@@ -1,7 +1,7 @@
 LazyLoadingAdapter
 ==================
 
-This project is used in Shady Photo & Video Safe 3.0 live on the Play Store: <a href="https://play.google.com/store/apps/details?id=com.project.memoryerrorsafetwo">Shady Photo & Video Safe 3.0</a>
+This project is used in Shady Photo & Video Safe 4.0+ live on the Play Store: <a href="https://play.google.com/store/apps/details?id=com.project.memoryerrorsafetwo">Shady Photo & Video Safe 4.0+</a>
 
 <img src="https://lh3.ggpht.com/CVH-reFVv4KGr6JBzX6RY8hiSDBceH6TD9F13W1jpc9zPGiYtNiPkihCwC3ZMEVSxQ=w124"/>
 
