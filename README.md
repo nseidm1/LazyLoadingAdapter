@@ -27,12 +27,14 @@ The constructor throws UnsupportedContentException - Per design only strings of 
 
 <B> Example </B>
 
+float scale = getResources().getDisplayMetrics().density;<br>
 new LazyLoadingAdapter<String>(mActivity, mGrid, (int) (scale * 63), (int) (scale * 63), null, 4, true);
 
 You can pass null as the List gracefully. Then you would use setPathsIDsOrUris(List<E> pathsIdsOrUris) and notifyDataSetChanged() to update your data.
 You'll also want to call clearCache() after changing the List of data before you call notifyDataSetChanged().
 Also:
 <p>
+float scale = getResources().getDisplayMetrics().density;<br>
 ArrayList<String> thumbPaths = new ArrayList<String>();<br>
 thumbPaths.add(getFilesDir() + "/cheese1.jpg");<br>
 thumbPaths.add(getFilesDir() + "/cheese2.jpg");<br>
