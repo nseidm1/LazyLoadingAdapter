@@ -10,17 +10,17 @@ A highly customizable and extendable lazy loading adapter class. This project ha
 The constructor takes 7 params:
 
 1) context 
-<p>
+<br>
 2) view  - Your AbsListView or your Gallery Widget
-<p>
+<br>
 3) height - The height of your image
-<p>
+<br>
 4) width - The width of your image
-<p>
+<br>
 5) pathsIDsOrUris - A List of Strings, Long IDs for "Thumbnails.getThumbnail()" from the phone's Image/Video content provider, or URIs of http addresses
-<p>
+<br>
 6) size - The size of the LRU cache in megabytes
-<p>
+<br>
 7) isImages - If the adapter will be loading thumbnails from image files or video files. If your List is Longs of IDs, this boolean tell the loader thread to target the Images or Videos thumbnail provider
 
 The constructor throws UnsupportedContentException - Per design only strings of local paths, Longs of thumb IDs, or URIs of remote media are supported
@@ -33,15 +33,17 @@ You can pass null as the List gracefully. Then you would use setPathsIDsOrUris(L
 
 Also:
 <p>
-ArrayList<String> thumbPaths = new ArrayList<String>();
-thumbPaths.add(getFilesDir() + "/cheese1.jpg");
-thumbPaths.add(getFilesDir() + "/cheese2.jpg");
-thumbPaths.add(getFilesDir() + "/cheese3.jpg");
+ArrayList<String> thumbPaths = new ArrayList<String>();<br>
+thumbPaths.add(getFilesDir() + "/cheese1.jpg");<br>
+thumbPaths.add(getFilesDir() + "/cheese2.jpg");<br>
+thumbPaths.add(getFilesDir() + "/cheese3.jpg");<br>
 new LazyLoadingAdapter<String>(mActivity, mGrid, (int) (scale * 63), (int) (scale * 63), thumbPaths, 4, true);
 
 <B> WARNING </B>
 
 !!!!!You MUST close the adapter. You will leak the loader thread if the adapter is not closed in an onDestroy or wherever most applicable!!!!
+
+<B> COPYRIGHT </B>
 
 Copyright 2012 Noah Seidman
 
