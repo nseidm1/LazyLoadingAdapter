@@ -7,7 +7,7 @@ This project is used in Shady Photo & Video Safe 4.0+ live on the Play Store: <a
 
 A highly customizable and extendable lazy loading adapter class. This project has countless customization methods, strategic callbacks, and a built in LRU caching system and support for position highlighting.
 
-The constructor takes 5 params:
+The constructor takes 7 params:
 
 1) context 
 <p>
