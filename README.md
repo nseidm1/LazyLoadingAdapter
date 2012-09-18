@@ -13,9 +13,9 @@ The constructor takes 7 params:
 <br>
 2) view  - Your AbsListView or your Gallery Widget
 <br>
-3) height - The height of your image
+3) height - The height of your images
 <br>
-4) width - The width of your image
+4) width - The width of your images
 <br>
 5) pathsIDsOrUris - A List of Strings, Long IDs for "Thumbnails.getThumbnail()" from the phone's Image/Video content provider, or URIs of http addresses
 <br>
