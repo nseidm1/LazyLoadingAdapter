@@ -44,8 +44,8 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
     private ViewHolder mHolder;
     private List<Integer> mAddHighlight = new ArrayList<Integer>();
     private ArrayList<E> mPathsIDsOrUris = new ArrayList<E>();
-    private static final int PROGRESSBARINDEX = 0;
-    private static final int IMAGEVIEWINDEX = 1;
+    protected static final int PROGRESSBARINDEX = 0;
+    protected static final int IMAGEVIEWINDEX = 1;
     protected View mView;
     protected Handler mHandler = new Handler();
     protected RetrieverThread<E> mAltImageRetrieverThread;
