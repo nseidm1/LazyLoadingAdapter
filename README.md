@@ -1,7 +1,7 @@
 LazyLoadingAdapter
 ==================
 
-This project is used in Shady Photo & Video Safe 3.0 live on the Play Store: <a href="https://play.google.com/store/apps/details?id=com.project.memoryerrorsafetwo">Shady Photo & Video Safe 3.0</a>
+This project is used in Shady Photo & Video Safe 4.0+ live on the Play Store: <a href="https://play.google.com/store/apps/details?id=com.project.memoryerrorsafetwo">Shady Photo & Video Safe 4.0+</a>
 
 <img src="https://lh3.ggpht.com/CVH-reFVv4KGr6JBzX6RY8hiSDBceH6TD9F13W1jpc9zPGiYtNiPkihCwC3ZMEVSxQ=w124"/>
 
@@ -17,7 +17,7 @@ The constructor takes 5 params:
 <p>
 4) width - The width of your image
 <p>
-5) pathsOrIds - A List of Strings, Long IDs for "Thumbnails.getThumbnail()" from the phone's Image/Video content provider, or URIs of http addresses
+5) pathsIDsOrUris - A List of Strings, Long IDs for "Thumbnails.getThumbnail()" from the phone's Image/Video content provider, or URIs of http addresses
 
 The constructor throws UnsupportedContentException - Per design only strings of local paths, Longs of thumb IDs, or URIs of remote media are supported
 
@@ -29,7 +29,7 @@ You can pass null as the List gracefully. Then you would use setPathsIDsOrUris(L
 
 <B> WARNING </B>
 
-!!!!!You MUST close the adapter. You will leak the loader thread if the adapter is not closed in an onDetroy or wherever most applicable!!!!
+!!!!!You MUST close the adapter. You will leak the loader thread if the adapter is not closed in an onDestroy or wherever most applicable!!!!
 
 Copyright 2012 Noah Seidman
 
