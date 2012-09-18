@@ -35,7 +35,7 @@ You'll also want to call clearCache() after changing the List of data before you
 Also:
 <p>
 float scale = getResources().getDisplayMetrics().density;<br>
-ArrayList<String> thumbPaths = new ArrayList<String>();<br>
+ArrayList\<String\> thumbPaths = new ArrayList\<String\>();<br>
 thumbPaths.add(getFilesDir() + "/cheese1.jpg");<br>
 thumbPaths.add(getFilesDir() + "/cheese2.jpg");<br>
 thumbPaths.add(getFilesDir() + "/cheese3.jpg");<br>
