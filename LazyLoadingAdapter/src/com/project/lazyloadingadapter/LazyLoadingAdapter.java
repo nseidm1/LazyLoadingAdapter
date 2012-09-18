@@ -21,7 +21,7 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ViewSwitcher;
 import com.project.lazyloadingadapter.helpers.PrivateClearCacheTask;
-import com.project.lazyloadingadapter.objects.ClearRemoteMediaCacheCallback;
+import com.project.lazyloadingadapter.objects.ClearCacheCallback;
 import com.project.lazyloadingadapter.objects.CustomLRUCache;
 import com.project.lazyloadingadapter.objects.LoadingCompleteCallback;
 import com.project.lazyloadingadapter.objects.QueueObject;
@@ -30,8 +30,7 @@ import com.project.lazyloadingadapter.support.RetrieverThread;
 /**
  * @author Noah Seidman
  * @param <E>
- *Specify the type of media this adapter will be using. The parameter types include Strings for local file system paths, longs for Gallery content provider IDs, and 
- *URIs for remote media
+ *Specify the type of media this adapter will be using. The parameter types include Strings for local file system paths, Longs for Gallery content provider thumbnail IDs "Thumbnails.getThumbnail()", and Uris for remote http media
  */
 @SuppressWarnings("deprecation")
 public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingCompleteCallback<E>, Closeable
@@ -117,8 +116,8 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
 	    if (!(object instanceof Long) && !(object instanceof String) && !(object instanceof Uri))
 		throw new UnsupportedContentException("List content contains unsupported data. " + 
 			      "This adapter accepts a List of String paths to images or video, " + 
-			      "Long values referring to the thumbnail of a Gallery image, or Uri " + 
-			      "locations of remote content.");
+			      "Long values referring to the thumbnail of a Gallery image/video, or Uri " + 
+			      "locations of remote http content.");
 	}
     }
     private void testView(View view) throws UnsupportedContentException
@@ -128,7 +127,7 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
     }
     /**
      * @param pathOrId
-     * The specific String path, Long id, or Uri you want to remove from the cache.
+     * Your List items are used as the key for the LRU cache. Specify a particular item to remove that particular thumb from the LRU cache.
      */
     public void removeFromCache(E pathIDOrUri)
     {
@@ -136,7 +135,7 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
     }
     /**
      * @param height
-     * Specify the height of the view your adapter will be filling.
+     * Specify the desired height of the view your adapter will be filling.
      */
     public void setImageHeight(int height)
     {
@@ -144,7 +143,7 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
     }
     /**
      * @param width
-     * Specify the width of the view your adapter will be filling.
+     * Specify the desired width of the view your adapter will be filling.
      */
     public void setImageWidth(int width)
     {
@@ -175,7 +174,7 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
 	mAddHighlight.remove((Object)position);
     }
     /**
-     * Clear all highlighted position.
+     * Clear all highlighted position. You'll want to call notifyDataSetChanged() afterwards.
      */
     public void clearHighlights()
     {
@@ -183,13 +182,13 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
     }
     /**
      * @param pathsOrIds
-     * A List of Strings, Long IDs for "Thumbnails.getThumbnail()" from the phone's Image/Video content provider, or URIs of http addresses
+     * A List of Strings, Long IDs for "Thumbnails.getThumbnail()" from the phone's Image/Video content provider, or URIs of http addresses.
      * <p>
      * You'll likely want to call clearCache() after changing your data.
      * <p>
      * Don't forget to call notifyDataSetChanged()!
      * @throws UnsupportedContentException
-     * Per design only strings of local paths, Longs of thumb IDs, or URIs of remote media are supported
+     * Per design only strings of local paths, Longs of thumb IDs, or URIs of remote media are supported.
      */
     public void setPathsIDsOrUris(ArrayList<E> pathsIDsOrUris) throws UnsupportedContentException
     {
@@ -198,9 +197,9 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
     }
     /**
      * @param view
-     * Your AbsListView or your Gallery Widget
+     * Your AbsListView or your Gallery Widget.
      * @throws UnsupportedContentException
-     * Per design only strings of local paths, Longs of thumb IDs, or URIs of remote media are supported
+     * Per design on AbsListViews and deprecated Gallery widgets are supported.
      */
     public void setView(View view) throws UnsupportedContentException
     {
@@ -226,7 +225,7 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
 	mAltImageRetrieverThread.stopThread();
     }
     /**
-     * Clear the LRU cache
+     * Clear the LRU cache of all images. You'll likely want to call notifyDataSetChanged() afterwards.
      */
     public void clearCache()
     {
@@ -234,15 +233,20 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
     }
     /**
      * @param clearCacheCallback
+     * This method is used to clear your app's cache directory. The cache directory is used for remote media downloads.
+     * <p>
      * Provide a interface to call when the cache directory has been completely emptied.
+     * <p>
+     * After the cache directory is emptied you'll likely want to clear the LRU cache and call notifyDataSetChaged().
      */
-    public void clearCacheWithCallback(ClearRemoteMediaCacheCallback clearCacheCallback)
+    public void clearCacheWithCallback(ClearCacheCallback clearCacheCallback)
     {
 	new PrivateClearCacheTask(mContext, clearCacheCallback).execute();
     }
     /**
      * @param degrees
-     * Supply the degress to rotate all the supplied images.
+     * Supply the degress to rotate all the supplied image thumbnails.
+     * The rotation will not be cached, and will occur in realtime, which may effect scrolling.
      */
     public void setRotation(int degrees)
     {

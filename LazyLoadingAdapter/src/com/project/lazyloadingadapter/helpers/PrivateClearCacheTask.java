@@ -3,13 +3,13 @@ package com.project.lazyloadingadapter.helpers;
 import java.io.File;
 import android.content.Context;
 import android.os.AsyncTask;
-import com.project.lazyloadingadapter.objects.ClearRemoteMediaCacheCallback;
+import com.project.lazyloadingadapter.objects.ClearCacheCallback;
 
 public class PrivateClearCacheTask extends AsyncTask<Void, Void, Void>
 {
     private Context mContext;
-    private ClearRemoteMediaCacheCallback mClearCacheCallback;
-    public PrivateClearCacheTask(Context context, ClearRemoteMediaCacheCallback clearCacheCallback)
+    private ClearCacheCallback mClearCacheCallback;
+    public PrivateClearCacheTask(Context context, ClearCacheCallback clearCacheCallback)
     {
 	mContext = context;
         mClearCacheCallback = clearCacheCallback;

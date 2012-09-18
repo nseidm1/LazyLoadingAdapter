@@ -1,5 +1,5 @@
 package com.project.lazyloadingadapter.objects;
-public interface ClearRemoteMediaCacheCallback
+public interface ClearCacheCallback
 {
     public void complete();
 }
