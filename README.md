@@ -17,7 +17,7 @@ The constructor takes 5 params:
 <p>
 4) width - The width of your image
 <p>
-5) pathsOrIds - A List of Strings, Long IDs for "Thumbnails.getThumbnail()" from the phone's Image/Video content provider, or URIs of http addresses
+5) pathsIDsOrUris - A List of Strings, Long IDs for "Thumbnails.getThumbnail()" from the phone's Image/Video content provider, or URIs of http addresses
 
 The constructor throws UnsupportedContentException - Per design only strings of local paths, Longs of thumb IDs, or URIs of remote media are supported
 
