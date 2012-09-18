@@ -88,8 +88,7 @@ public class RetrieverThread<E> extends Thread
 		QueueObject<E> object = mArrayBlockingQueue.take();
 		// The following while loop is used to accommodate unexpected
 		// out of memory errors decoding the image file
-		// Pre-scaling ins used, but wtf situations occur. 10 is
-		// overkill.
+		// Pre-scaling is used, but wtf situations occur. 10 is overkill but...
 		boolean success = false;
 		int counter = 0;
 		while (success == false && counter < 10 && object != null && object.getPathIDOrUri() != null)

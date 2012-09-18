@@ -20,6 +20,8 @@ import android.widget.ImageView.ScaleType;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ViewSwitcher;
+import com.project.lazyloadingadapter.helpers.PrivateClearCacheTask;
+import com.project.lazyloadingadapter.objects.ClearRemoteMediaCacheCallback;
 import com.project.lazyloadingadapter.objects.CustomLRUCache;
 import com.project.lazyloadingadapter.objects.LoadingCompleteCallback;
 import com.project.lazyloadingadapter.objects.QueueObject;
@@ -27,11 +29,9 @@ import com.project.lazyloadingadapter.objects.UnsupportedContentException;
 import com.project.lazyloadingadapter.support.RetrieverThread;
 /**
  * @author Noah Seidman
- */
-/**
- * @author nseidm1
- *
  * @param <E>
+ *Specify the type of media this adapter will be using. The parameter types include Strings for local file system paths, longs for Gallery content provider IDs, and 
+ *URIs for remote media
  */
 @SuppressWarnings("deprecation")
 public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingCompleteCallback<E>, Closeable
@@ -40,17 +40,17 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
     private int mWidth;
     private int mHeight;
     private int mHightlightColor = Color.YELLOW;
-    private ArrayList<E> mPathsIDsOrUris = new ArrayList<E>();
-    private List<Integer> mAddHighlight;
-    private ViewHolder holder;
+    private int mDegressRotation = 0;
     protected View mView;
     private boolean mIsImages;
+    protected static final int PROGRESSBARINDEX = 0;
+    protected static final int IMAGEVIEWINDEX = 1;
+    private ViewHolder holder;
     protected Handler mHandler = new Handler();
     protected RetrieverThread<E> mAltImageRetrieverThread;
     protected CustomLRUCache<E> mCache;
-    protected static final int PROGRESSBARINDEX = 0;
-    protected static final int IMAGEVIEWINDEX = 1;
-    private int mDegressRotation = 0;
+    private List<Integer> mAddHighlight = new ArrayList<Integer>();
+    private ArrayList<E> mPathsIDsOrUris = new ArrayList<E>();
     /**
      * Warning - Do not forget to close() the adapter in onDetroy to stop the loader thread
      * <p>
@@ -100,12 +100,10 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
 	testView(view);
 	mContext = context;
 	mView = view;
-	mCache = new CustomLRUCache<E>(size * 1024 * 1024);
 	mWidth = width;
 	mHeight = height;
-	mAddHighlight = new ArrayList<Integer>();
-
 	mIsImages = isImages;
+	mCache = new CustomLRUCache<E>(size * 1024 * 1024);
 	// Provide the loader thread with some info beforehand including the
 	// cache, width, and height. The dimensions of the
 	// desired thumbnail are needed for decoding purposes
@@ -117,18 +115,16 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
 	for (Object object : pathsOrIds)
 	{
 	    if (!(object instanceof Long) && !(object instanceof String) && !(object instanceof Uri))
-	    {
-		throw new UnsupportedContentException("List content contains unsupported data. " + "This adapter accepts a List of String paths to images or video, "
-			+ "Long values referring to the thumbnail of a Gallery image, or Uri " + "locations of remote content.");
-	    }
+		throw new UnsupportedContentException("List content contains unsupported data. " + 
+			      "This adapter accepts a List of String paths to images or video, " + 
+			      "Long values referring to the thumbnail of a Gallery image, or Uri " + 
+			      "locations of remote content.");
 	}
     }
     private void testView(View view) throws UnsupportedContentException
     {
 	if (!(view instanceof Gallery) && !(view instanceof AbsListView))
-	{
 	    throw new UnsupportedContentException("The supplied view can only be an AbsListView or a Gallery");
-	}
     }
     /**
      * @param pathOrId
@@ -162,7 +158,6 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
     {
 	mAddHighlight.add(position);
     }
-
     /**
      * @param highlightColor
      * Supply a Color value or use Color.Parse() to use a custom hex value.
@@ -177,7 +172,7 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
      */
     public void removeHighlight(int position)
     {
-	mAddHighlight.remove(position);
+	mAddHighlight.remove((Object)position);
     }
     /**
      * Clear all highlighted position.
@@ -230,17 +225,20 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
     {
 	mAltImageRetrieverThread.stopThread();
     }
-    public interface ClearCacheCallback
-    {
-	public void complete();
-    }
-    
     /**
      * Clear the LRU cache
      */
     public void clearCache()
     {
 	mCache.evictAll();
+    }
+    /**
+     * @param clearCacheCallback
+     * Provide a interface to call when the cache directory has been completely emptied.
+     */
+    public void clearCacheWithCallback(ClearRemoteMediaCacheCallback clearCacheCallback)
+    {
+	new PrivateClearCacheTask(mContext, clearCacheCallback).execute();
     }
     /**
      * @param degrees
