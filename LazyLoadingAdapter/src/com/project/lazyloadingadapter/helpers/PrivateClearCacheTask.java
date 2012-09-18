@@ -19,12 +19,12 @@ public class PrivateClearCacheTask extends AsyncTask<Void, Void, Void>
     {
         try
         {
-    	File cacheDirectory = mContext.getCacheDir();
-    	for (File file : cacheDirectory.listFiles())
-    	{
-    	    if (file != null && file.exists())
-    		file.delete();
-    	}
+            File cacheDirectory = mContext.getCacheDir();
+            for (File file : cacheDirectory.listFiles())
+            {
+        	if (file != null && file.exists())
+        	    file.delete();
+            }
         }
         catch(Exception e)
         {
