@@ -40,16 +40,16 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
     private int mHeight;
     private int mHightlightColor = Color.YELLOW;
     private int mDegressRotation = 0;
-    protected View mView;
     private boolean mIsImages;
-    protected static final int PROGRESSBARINDEX = 0;
-    protected static final int IMAGEVIEWINDEX = 1;
-    private ViewHolder holder;
+    private ViewHolder mHolder;
+    private List<Integer> mAddHighlight = new ArrayList<Integer>();
+    private ArrayList<E> mPathsIDsOrUris = new ArrayList<E>();
+    private static final int PROGRESSBARINDEX = 0;
+    private static final int IMAGEVIEWINDEX = 1;
+    protected View mView;
     protected Handler mHandler = new Handler();
     protected RetrieverThread<E> mAltImageRetrieverThread;
     protected CustomLRUCache<E> mCache;
-    private List<Integer> mAddHighlight = new ArrayList<Integer>();
-    private ArrayList<E> mPathsIDsOrUris = new ArrayList<E>();
     /**
      * Warning - Do not forget to close() the adapter in onDetroy to stop the loader thread
      * <p>
@@ -279,7 +279,7 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
 	}
 	else
 	{
-	    holder = (ViewHolder)convertView.getTag();
+	    mHolder = (ViewHolder)convertView.getTag();
 	}
 	// Retrieve the image either from the cache or load it into the cache,
 	// then display accordingly
@@ -291,13 +291,13 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
     {
 	if (mAddHighlight.contains(position))
 	{
-	    holder.image.setPadding(5, 5, 5, 5);
-	    holder.image.setBackgroundColor(mHightlightColor);
+	    mHolder.image.setPadding(5, 5, 5, 5);
+	    mHolder.image.setBackgroundColor(mHightlightColor);
 	}
 	else
 	{
-	    holder.image.setPadding(0, 0, 0, 0);
-	    holder.image.setBackgroundColor(Color.parseColor("#00000000"));
+	    mHolder.image.setPadding(0, 0, 0, 0);
+	    mHolder.image.setBackgroundColor(Color.parseColor("#00000000"));
 	}
     }
     protected Bitmap processRotation(Bitmap bitmap)
@@ -317,21 +317,21 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
 	if (mPathsIDsOrUris.size() != 0 && mPathsIDsOrUris.size() > position)
 	{
 	    convertView.setDisplayedChild(LazyLoadingAdapter.PROGRESSBARINDEX);
-	    mAltImageRetrieverThread.loadImage(new QueueObject<E>(position, mPathsIDsOrUris.get(position), convertView, holder.image));
+	    mAltImageRetrieverThread.loadImage(new QueueObject<E>(position, mPathsIDsOrUris.get(position), convertView, mHolder.image));
 	}
     }
     protected View processConvertView(View convertView)
     {
-	holder = new ViewHolder();
+	mHolder = new ViewHolder();
 	convertView = new ViewSwitcher(mContext);
 	LinearLayout progressBarContainer = new LinearLayout(mContext);
 	progressBarContainer = initProgressBarContainer(progressBarContainer);
-	holder.image = new ImageView(mContext);
-	holder.image.setScaleType(ScaleType.FIT_CENTER);
-	holder.image.setLayoutParams(new LinearLayout.LayoutParams(mWidth, mWidth));
+	mHolder.image = new ImageView(mContext);
+	mHolder.image.setScaleType(ScaleType.FIT_CENTER);
+	mHolder.image.setLayoutParams(new LinearLayout.LayoutParams(mWidth, mWidth));
 	((ViewSwitcher) convertView).addView(progressBarContainer);
-	((ViewSwitcher) convertView).addView(holder.image);
-	convertView.setTag(holder);
+	((ViewSwitcher) convertView).addView(mHolder.image);
+	convertView.setTag(mHolder);
 	return convertView;
     }
     // Add a progress bar to the progress bar container and ensure that it's
