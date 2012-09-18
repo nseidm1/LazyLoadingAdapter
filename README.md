@@ -31,6 +31,14 @@ new LazyLoadingAdapter<String>(mActivity, mGrid, (int) (scale * 63), (int) (scal
 
 You can pass null as the List gracefully. Then you would use setPathsIDsOrUris(List<E> pathsIdsOrUris) and notifyDataSetChanged() to update your data.
 
+Also:
+<p>
+ArrayList<String> thumbPaths = new ArrayList<String>();
+thumbPaths.add(getFilesDir() + "/cheese1.jpg");
+thumbPaths.add(getFilesDir() + "/cheese2.jpg");
+thumbPaths.add(getFilesDir() + "/cheese3.jpg");
+new LazyLoadingAdapter<String>(mActivity, mGrid, (int) (scale * 63), (int) (scale * 63), thumbPaths, 4, true);
+
 <B> WARNING </B>
 
 !!!!!You MUST close the adapter. You will leak the loader thread if the adapter is not closed in an onDestroy or wherever most applicable!!!!
