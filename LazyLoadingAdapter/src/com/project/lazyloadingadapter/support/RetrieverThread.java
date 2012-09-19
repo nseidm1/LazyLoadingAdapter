@@ -139,10 +139,9 @@ public class RetrieverThread<E> extends Thread
 			// The sample size will continuously increase up until 10. This methodology accommodates out of memory issues
 			// associated with image loading. 10 is overkill. Success = true is not set here to recycle through the while loop.
 			System.gc();
-			Log.d(TAG, "out of memory decoding thumb by path");
 			mOptions.inSampleSize++;
 			counter++;
-			Log.e(TAG, "out of memory decoding image");
+			Log.e(TAG, "Out of memory decoding image");
 		    }
 		    catch (Throwable e)
 		    {
@@ -150,7 +149,7 @@ public class RetrieverThread<E> extends Thread
 			thumbnail = cacheMissingImagePlaceholder(object);
 			mLoadingCompleteCallback.updateImageInUI(object, thumbnail);
 			e.printStackTrace();
-			Log.e(TAG, "uri syntax exception decoding image");
+			Log.e(TAG, "Uri syntax exception decoding image");
 			success = true;
 		    }
 		}
