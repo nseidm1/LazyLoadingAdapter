@@ -131,6 +131,7 @@ public class RetrieverThread<E> extends Thread
 			{
 			    thumbnail = mCache.get(object.getPathIDOrUri());
 			}
+			mLoadingCompleteCallback.updateImageInUI(object, thumbnail);
 			success = true;
 		    }
 		    catch (OutOfMemoryError e)
@@ -147,12 +148,11 @@ public class RetrieverThread<E> extends Thread
 		    {
 			// Cache a missing image placeholder, and update the UI
 			thumbnail = cacheMissingImagePlaceholder(object);
+			mLoadingCompleteCallback.updateImageInUI(object, thumbnail);
 			e.printStackTrace();
 			Log.e(TAG, "uri syntax exception decoding image");
 			success = true;
 		    }
-		    //No matter what this is called, even if the above blows up
-		    mLoadingCompleteCallback.updateImageInUI(object, thumbnail);
 		}
 	    }
 	    catch (InterruptedException e)
