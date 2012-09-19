@@ -94,89 +94,71 @@ public class RetrieverThread<E> extends Thread
 		int counter = 0;
 		while (success == false && counter < 10 && object != null && object.getPathIDOrUri() != null)
 		{
-		    Bitmap temp;
+		    Bitmap thumbnail = null;
 		    try
 		    {
-			// If the cache does not contain the object retrieve the object
+			// If the cache does not contain the object retrieve the object and cache it
 			if (mCache.get(object.getPathIDOrUri()) == null)
 			{
-			    // Remote content Uri
 			    if (object.getPathIDOrUri() instanceof Uri)
 			    {
 				String path = object.getPathIDOrUri().toString();
 				File file = new File(mContext.getCacheDir(), path.substring(path.lastIndexOf("/") + 1));
 				if (!file.exists())
-				{
 				    processRemoteFileToLocalFile(object, file);
-				}
-				Log.d(TAG, "Local File Path of Remote File: " + file.getPath());
-				temp = processImagePath(file.getPath(), object.getPathIDOrUri());
+				if (mIsImages)
+				    thumbnail = processImagePath(file.getPath(), object.getPathIDOrUri());
+				else
+				    thumbnail = processVideoPath(file.getPath(), object.getPathIDOrUri());
 			    }
-			    // If the QueueObject contains a Long it entails a
-			    // List of image thumb IDs has been supplied
 			    else if (object.getPathIDOrUri() instanceof Long)
 			    {
 				if (mIsImages)
-				{
-				    temp = processImageThumb((Long) object.getPathIDOrUri(), object.getPathIDOrUri());
-				}
+				    thumbnail = processImageThumb((Long) object.getPathIDOrUri(), object.getPathIDOrUri());
 				else
-				{
-				    temp = processVideoThumb((Long) object.getPathIDOrUri(), object.getPathIDOrUri());
-				}
+				    thumbnail = processVideoThumb((Long) object.getPathIDOrUri(), object.getPathIDOrUri());
 			    }
 			    else
 			    {
-				//If it gets this far it has to be a string
 				if (mIsImages)
-				{
-				    temp = processImagePath((String) object.getPathIDOrUri(), object.getPathIDOrUri());
-				}
-				//Here it's a video file
+				    thumbnail = processImagePath((String) object.getPathIDOrUri(), object.getPathIDOrUri());
 				else
-				{
-				    Log.d(TAG, "Decoding Video File");
-				    temp = processVideoPath((String) object.getPathIDOrUri(), object.getPathIDOrUri());
-				}			    
+				    thumbnail = processVideoPath((String) object.getPathIDOrUri(), object.getPathIDOrUri());
 			    }
 			}
+			// If the cache contains the object just update it in the UI
 			else
 			{
-			    temp = mCache.get(object.getPathIDOrUri());
+			    thumbnail = mCache.get(object.getPathIDOrUri());
 			}
-			// If the cache contains the object just update it in
-			// the UI
-			mLoadingCompleteCallback.updateImageInUI(object, temp);
 			success = true;
 		    }
 		    catch (OutOfMemoryError e)
 		    {
-			// The sample size will continuously increase up until
-			// 10. This methodology accommodates out of memory issues
-			// associated with image loading. 10 is overkill.
-			// Success = true is not set here to recycle through the
-			// while loop
+			// The sample size will continuously increase up until 10. This methodology accommodates out of memory issues
+			// associated with image loading. 10 is overkill. Success = true is not set here to recycle through the while loop.
 			System.gc();
 			Log.d(TAG, "out of memory decoding thumb by path");
 			mOptions.inSampleSize++;
 			counter++;
 			Log.e(TAG, "out of memory decoding image");
 		    }
-		    catch (Exception e)
+		    catch (Throwable e)
 		    {
 			// Cache a missing image placeholder, and update the UI
-			temp = cacheMissingImagePlaceholder(object);
-			mLoadingCompleteCallback.updateImageInUI(object, temp);
+			thumbnail = cacheMissingImagePlaceholder(object);
 			e.printStackTrace();
 			Log.e(TAG, "uri syntax exception decoding image");
 			success = true;
 		    }
+		    //No matter what this is called, even if the above blows up
+		    mLoadingCompleteCallback.updateImageInUI(object, thumbnail);
 		}
 	    }
 	    catch (InterruptedException e)
 	    {
 		// Array blocking queue interrupted
-		Log.e(TAG, "image loader thread interrupted while decoding an image, thread is still alive");
+		Log.e(TAG, "Image loader thread interrupted while decoding an image, thread may still be still alive");
 	    }
 	}
     }

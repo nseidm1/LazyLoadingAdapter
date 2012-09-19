@@ -86,6 +86,10 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
      * The width of your image
      * @param pathsOrIds
      * A List of Strings, Long IDs for "Thumbnails.getThumbnail()" from the phone's Image/Video content provider, or URIs of http addresses
+     * @param size
+     * Specify the size of the LRU cache in megabytes
+     * @param isImages
+     * If a List of String paths are provided are they image files or video files? If a List of Long IDs is provided, are they for the Images or Video content provider?
      * @throws UnsupportedContentException
      * Per design only strings of local paths, Longs of thumb IDs, or URIs of remote media are supported
      */
