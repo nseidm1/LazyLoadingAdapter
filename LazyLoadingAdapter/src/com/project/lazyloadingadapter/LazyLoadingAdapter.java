@@ -51,7 +51,7 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
     protected RetrieverThread<E> mAltImageRetrieverThread;
     protected CustomLRUCache<E> mCache;
     /**
-     * Warning - Do not forget to close() the adapter in onDetroy to stop the loader thread
+     * Warning - Do not forget to close() the adapter in onDestroy to stop the loader thread
      * <p>
      * A lazy loading image adapter using an array blocking queue.This
      * adapter works well with images of any size. 
