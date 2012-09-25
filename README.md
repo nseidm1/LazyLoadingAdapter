@@ -33,7 +33,8 @@ float scale = getResources().getDisplayMetrics().density;<br>
 new LazyLoadingAdapter\<String\>(mActivity, mGrid, (int) (scale * 63), (int) (scale * 63), null, 4, true);
 
 You can pass null as the List gracefully. Then you would use setPathsIDsOrUris(List<E> pathsIdsOrUris) and notifyDataSetChanged() to update your data.
-You'll also want to call clearCache() after changing the List of data before you call notifyDataSetChanged().
+You'll also want to call clearCache() after changing the List of data before you call notifyDataSetChanged(). You may also want to use clearCacheWithCallback() if your 
+loading media from remote locations; the library will cache remotely downloaded media to the app's cache directory.
 Also:
 <p>
 float scale = getResources().getDisplayMetrics().density;<br>
