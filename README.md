@@ -7,8 +7,10 @@ This project is used in Shady Photo & Video Safe 4.0+ live on the Play Store: <a
 
 A highly customizable and extendable lazy loading adapter class that has full javadoc. This project has countless customization methods, strategic callbacks, and a built in LRU caching system and support for position highlighting.
 
+The class takes a type param specifying the type of literal supplying the images. Meaning if it's a path it'll be a String, if its a thumbnail ID it'll be a Long, and if it's an http address it'll be a Uri.
+<br><br>
 The constructor takes 7 params:
-
+<br>
 1) context 
 <br>
 2) view  - Your AbsListView or your Gallery Widget
@@ -21,7 +23,7 @@ The constructor takes 7 params:
 <br>
 6) size - The size of the LRU cache in megabytes
 <br>
-7) isImages - If the adapter will be loading thumbnails from image files or video files. If your List is Longs of IDs, this boolean tell the loader thread to target the Images or Videos thumbnail provider
+7) isImages - If the adapter will be loading thumbnails from image files or video files
 
 The constructor throws UnsupportedContentException - Per design only strings of local paths, Longs of thumb IDs, or URIs of remote media are supported
 
@@ -31,7 +33,8 @@ float scale = getResources().getDisplayMetrics().density;<br>
 new LazyLoadingAdapter\<String\>(mActivity, mGrid, (int) (scale * 63), (int) (scale * 63), null, 4, true);
 
 You can pass null as the List gracefully. Then you would use setPathsIDsOrUris(List<E> pathsIdsOrUris) and notifyDataSetChanged() to update your data.
-You'll also want to call clearCache() after changing the List of data before you call notifyDataSetChanged().
+You'll also want to call clearCache() after changing the List of data before you call notifyDataSetChanged(). You may also want to use clearCacheWithCallback() if your 
+loading media from remote locations; the library will cache remotely downloaded media to the app's cache directory.
 Also:
 <p>
 float scale = getResources().getDisplayMetrics().density;<br>
