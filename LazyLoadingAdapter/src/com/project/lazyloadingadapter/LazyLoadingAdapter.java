@@ -241,7 +241,7 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
      * <p>
      * Provide a interface to call when the cache directory has been completely emptied.
      * <p>
-     * After the cache directory is emptied you'll likely want to clear the LRU cache and call notifyDataSetChaged().
+     * After the cache directory is emptied you'll likely want to clear the LRU cache using clearCache(), and call notifyDataSetChaged().
      */
     public void clearCacheWithCallback(ClearCacheCallback clearCacheCallback)
     {
