@@ -1,5 +1,4 @@
 package com.project.lazyloadingadapter;
-import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.List;
 import android.content.Context;
@@ -33,7 +32,7 @@ import com.project.lazyloadingadapter.support.RetrieverThread;
  *Specify the type of media this adapter will be using. The parameter types include Strings for local file system paths, Longs for Gallery content provider thumbnail IDs "Thumbnails.getThumbnail()", and Uris for remote http media
  */
 @SuppressWarnings("deprecation")
-public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingCompleteCallback<E>, Closeable
+public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingCompleteCallback<E>
 {
     private Context mContext;
     private int mWidth;
@@ -48,7 +47,7 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
     protected static final int IMAGEVIEWINDEX = 1;
     protected View mView;
     protected Handler mHandler = new Handler();
-    protected RetrieverThread<E> mAltImageRetrieverThread;
+    protected RetrieverThread<E> mImageRetrieverThread;
     protected CustomLRUCache<E> mCache;
     /**
      * Warning - Do not forget to close() the adapter in onDestroy to stop the loader thread
@@ -110,8 +109,8 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
 	// Provide the loader thread with some info beforehand including the
 	// cache, width, and height. The dimensions of the
 	// desired thumbnail are needed for decoding purposes
-	mAltImageRetrieverThread = new RetrieverThread<E>(mContext, mHandler, this, mCache, mWidth, mHeight, mIsImages);
-	mAltImageRetrieverThread.start();
+	mImageRetrieverThread = new RetrieverThread<E>(mContext, mHandler, this, mCache, mWidth, mHeight, mIsImages);
+	mImageRetrieverThread.start();
     }
     private void testData(List<?> pathsOrIds) throws UnsupportedContentException
     {
@@ -223,10 +222,9 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
     /**
      * This is absolutely mandatory to use in onDestroy() or wherever applicable or appropriate. If this is not called you will leak the retriever thread. Leakie is no goodie.
      */
-    @Override
     public void close()
     {
-	mAltImageRetrieverThread.stopThread();
+	mImageRetrieverThread.stopThread();
     }
     /**
      * Clear the LRU cache of all images. You'll likely want to call notifyDataSetChanged() afterwards.
@@ -306,7 +304,7 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
     }
     protected Bitmap processRotation(Bitmap bitmap)
     {
-	if (getRotation() == 0 && (getRotation() % 360) == 0)
+	if (getRotation() == 0 || (getRotation() % 360) == 0)
 	{
 	    return bitmap;
 	}
@@ -321,7 +319,7 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
 	if (mPathsIDsOrUris.size() != 0 && mPathsIDsOrUris.size() > position)
 	{
 	    convertView.setDisplayedChild(LazyLoadingAdapter.PROGRESSBARINDEX);
-	    mAltImageRetrieverThread.loadImage(new QueueObject<E>(position, mPathsIDsOrUris.get(position), convertView, mHolder.image));
+	    mImageRetrieverThread.loadImage(new QueueObject<E>(position, mPathsIDsOrUris.get(position), convertView, mHolder.image));
 	}
     }
     protected View processConvertView(View convertView)
