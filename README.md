@@ -7,8 +7,10 @@ This project is used in Shady Photo & Video Safe 4.0+ live on the Play Store: <a
 
 A highly customizable and extendable lazy loading adapter class that has full javadoc. This project has countless customization methods, strategic callbacks, and a built in LRU caching system and support for position highlighting.
 
+The class takes a type param specifying the type of literal supplying the images. Meaning if it's a path it'll be a String, if its a thumbnail ID it'll be a Long, and if it's an http address it'll be a Uri.
+<br>
 The constructor takes 7 params:
-
+<br>
 1) context 
 <br>
 2) view  - Your AbsListView or your Gallery Widget
