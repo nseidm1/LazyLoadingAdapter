@@ -2,13 +2,11 @@
  * 
  */
 package com.project.lazyloadingadapter.objects;
-
 import java.util.concurrent.ArrayBlockingQueue;
-
 /**
  * @author nseidm1
  * @param <E>
- *
+ * 
  */
 public class CustomArrayBlockingQueue<E> extends ArrayBlockingQueue<QueueObject<E>>
 {
