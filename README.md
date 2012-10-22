@@ -29,8 +29,8 @@ The constructor throws UnsupportedContentException - Per design only strings of 
 
 <B> Example </B>
 
-<code>float scale = getResources().getDisplayMetrics().density;<br>
-new LazyLoadingAdapter\<String\>(mActivity, mGrid, (int) (scale * 63), (int) (scale * 63), null, 4, true);</code>
+<pre><code>float scale = getResources().getDisplayMetrics().density;
+new LazyLoadingAdapter\<String\>(mActivity, mGrid, (int) (scale * 63), (int) (scale * 63), null, 4, true);</code></pre>
 
 You can pass null as the List gracefully. Then you would use setPathsIDsOrUris(List<E> pathsIdsOrUris) and notifyDataSetChanged() to update your data.
 You'll also want to call clearCache() after changing the List of data before you call notifyDataSetChanged(). You may also want to use clearCacheWithCallback() if your 
@@ -38,20 +38,18 @@ loading media from remote locations; the library will cache remotely downloaded 
 Also:
 
 
-<code>float scale = getResources().getDisplayMetrics().density;<br>
-ArrayList\<String\> thumbPaths = new ArrayList\<String\>();<br>
-thumbPaths.add(getFilesDir() + "/cheese1.jpg");<br>
-thumbPaths.add(getFilesDir() + "/cheese2.jpg");<br>
-thumbPaths.add(getFilesDir() + "/cheese3.jpg");<br>
-new LazyLoadingAdapter\<String\>(mActivity, mGrid, (int) (scale * 63), (int) (scale * 63), thumbPaths, 4, true);</code>
+<pre><code>float scale = getResources().getDisplayMetrics().density;
+ArrayList\<String\> thumbPaths = new ArrayList\<String\>();
+thumbPaths.add(getFilesDir() + "/cheese1.jpg");
+thumbPaths.add(getFilesDir() + "/cheese2.jpg");
+thumbPaths.add(getFilesDir() + "/cheese3.jpg");
+new LazyLoadingAdapter\<String\>(mActivity, mGrid, (int) (scale * 63), (int) (scale * 63), thumbPaths, 4, true);</code></pre>
 
 <B> WARNING </B>
 
 !!!!!You MUST close the adapter. You will leak the loader thread if the adapter is not closed in an onDestroy or wherever most applicable!!!!
 
-<B> COPYRIGHT </B>
-
-Copyright 2012 Noah Seidman
+<pre><code>Copyright 2012 Noah Seidman
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -64,3 +62,4 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+</code></pre>
