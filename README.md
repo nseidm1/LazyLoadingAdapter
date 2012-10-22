@@ -29,20 +29,21 @@ The constructor throws UnsupportedContentException - Per design only strings of 
 
 <B> Example </B>
 
-float scale = getResources().getDisplayMetrics().density;<br>
-new LazyLoadingAdapter\<String\>(mActivity, mGrid, (int) (scale * 63), (int) (scale * 63), null, 4, true);
+<code>float scale = getResources().getDisplayMetrics().density;<br>
+new LazyLoadingAdapter\<String\>(mActivity, mGrid, (int) (scale * 63), (int) (scale * 63), null, 4, true);</code>
 
 You can pass null as the List gracefully. Then you would use setPathsIDsOrUris(List<E> pathsIdsOrUris) and notifyDataSetChanged() to update your data.
 You'll also want to call clearCache() after changing the List of data before you call notifyDataSetChanged(). You may also want to use clearCacheWithCallback() if your 
 loading media from remote locations; the library will cache remotely downloaded media to the app's cache directory.
 Also:
-<p>
-float scale = getResources().getDisplayMetrics().density;<br>
+
+
+<code>float scale = getResources().getDisplayMetrics().density;<br>
 ArrayList\<String\> thumbPaths = new ArrayList\<String\>();<br>
 thumbPaths.add(getFilesDir() + "/cheese1.jpg");<br>
 thumbPaths.add(getFilesDir() + "/cheese2.jpg");<br>
 thumbPaths.add(getFilesDir() + "/cheese3.jpg");<br>
-new LazyLoadingAdapter\<String\>(mActivity, mGrid, (int) (scale * 63), (int) (scale * 63), thumbPaths, 4, true);
+new LazyLoadingAdapter\<String\>(mActivity, mGrid, (int) (scale * 63), (int) (scale * 63), thumbPaths, 4, true);</code>
 
 <B> WARNING </B>
 
