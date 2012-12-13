@@ -1,7 +1,9 @@
 package com.project.lazyloadingadapter.support;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,6 +21,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.media.ThumbnailUtils;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -29,6 +32,7 @@ import android.provider.MediaStore.Images;
 import android.provider.MediaStore.Video;
 import android.widget.Toast;
 import com.project.lazyloadingadapter.R;
+import com.project.lazyloadingadapter.helpers.Exif;
 import com.project.lazyloadingadapter.helpers.Log;
 import com.project.lazyloadingadapter.objects.CustomArrayBlockingQueue;
 import com.project.lazyloadingadapter.objects.CustomLRUCache;
@@ -87,7 +91,7 @@ public class RetrieverThread<E> extends Thread
 	    try
 	    {
 		QueueObject<E> object = mArrayBlockingQueue.take();
-		Thread.sleep(10);
+		Thread.sleep(5);
 		// The following while loop is used to accommodate unexpected
 		// out of memory errors decoding the image file
 		// Pre-scaling is used, but wtf situations occur. 10 is overkill
@@ -228,7 +232,7 @@ public class RetrieverThread<E> extends Thread
 	HttpEntity entity = response.getEntity();
 	return entity;
     }
-    private Bitmap processImageThumb(Long id, E pathIDOrUri) throws NullPointerException, OutOfMemoryError
+    private Bitmap processImageThumb(Long id, E pathIDOrUri) throws NullPointerException, OutOfMemoryError, IOException
     {
 	// No need to prescale, it's gonna be tiny already
 	Bitmap temp = ThumbnailUtils.extractThumbnail(MediaStore.Images.Thumbnails.getThumbnail(mContext.getContentResolver(), id, MediaStore.Images.Thumbnails.MICRO_KIND, null), mWidth, mHeight,
@@ -294,15 +298,40 @@ public class RetrieverThread<E> extends Thread
 	mCache.put(pathIDOrUri, temp);
 	return temp;
     }
-    private Bitmap processImagePath(String path, E pathIDOrUri) throws NullPointerException, OutOfMemoryError
+    private Bitmap processImagePath(String path, E pathIDOrUri) throws NullPointerException, OutOfMemoryError, IOException
     {
-	// Prescale image for known resolutions that will cause out of memory
-	// situations
+	// Prescale image for known resolutions that will cause out of memory situations
 	preScaleImage(path);
-	Bitmap temp = ThumbnailUtils.extractThumbnail(BitmapFactory.decodeFile(path, mOptions), mWidth, mHeight, ThumbnailUtils.OPTIONS_RECYCLE_INPUT);
+	
+	byte[] tempBytes = getBitmapBytes(path);
+	Bitmap tempBitmap = BitmapFactory.decodeByteArray(tempBytes, 0, tempBytes.length, mOptions);
+	int currentRotation = Exif.getOrientation(tempBytes);
+	if (currentRotation == 0 || (currentRotation % 360) == 0) {
+	    return tempBitmap;
+	}
+	
+	//Rotate based on EXIF data
+	Matrix matrix = new Matrix();
+	matrix.setRotate(currentRotation, tempBitmap.getWidth() / 2, tempBitmap.getHeight() / 2);
+	
+	Bitmap temp = ThumbnailUtils.extractThumbnail(Bitmap.createBitmap(tempBitmap, 0, 0, tempBitmap.getWidth(), tempBitmap.getHeight(), matrix, true), mWidth, mHeight, ThumbnailUtils.OPTIONS_RECYCLE_INPUT);
 	mCache.put(pathIDOrUri, temp);
 	return temp;
     }
+ 
+    private byte[] getBitmapBytes(String path) throws IOException
+    {
+	File file = new File(path);
+	InputStream is = new FileInputStream(file);
+	ByteArrayOutputStream bos = new ByteArrayOutputStream();
+	byte[] b = new byte[1024];
+	int bytesRead;
+	while ((bytesRead = is.read(b)) != -1) {
+	   bos.write(b, 0, bytesRead);
+	}
+	return bos.toByteArray();
+    }
+
     public synchronized void stopThread()
     {
 	// Set the while loop boolean to false, and add a KILL object to the
