@@ -1,11 +1,10 @@
 package com.project.lazyloadingadapter;
-
 import java.util.ArrayList;
 import java.util.List;
-
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.graphics.Matrix;
 import android.net.Uri;
 import android.os.Handler;
 import android.view.Gravity;
@@ -20,8 +19,6 @@ import android.widget.ImageView.ScaleType;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ViewSwitcher;
-
-import com.project.lazyloadingadapter.helpers.Log;
 import com.project.lazyloadingadapter.helpers.PrivateClearCacheTask;
 import com.project.lazyloadingadapter.objects.ClearCacheCallback;
 import com.project.lazyloadingadapter.objects.CustomLRUCache;
@@ -29,7 +26,6 @@ import com.project.lazyloadingadapter.objects.LoadingCompleteCallback;
 import com.project.lazyloadingadapter.objects.QueueObject;
 import com.project.lazyloadingadapter.objects.UnsupportedContentException;
 import com.project.lazyloadingadapter.support.RetrieverThread;
-
 /**
  * @author Noah Seidman
  * @param <E>
@@ -39,11 +35,13 @@ import com.project.lazyloadingadapter.support.RetrieverThread;
  *            "Thumbnails.getThumbnail()", and Uris for remote http media
  */
 @SuppressWarnings("deprecation")
-public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingCompleteCallback<E> {
+public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingCompleteCallback<E>
+{
     private Context mContext;
     private int mWidth;
     private int mHeight;
     private int mHightlightColor = Color.YELLOW;
+    private int mDegressRotation = 0;
     private boolean mIsImages;
     private ViewHolder mHolder;
     private List<Integer> mAddHighlight = new ArrayList<Integer>();
@@ -54,7 +52,6 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
     protected Handler mHandler = new Handler();
     protected RetrieverThread<E> mImageRetrieverThread;
     protected CustomLRUCache<E> mCache;
-
     /**
      * Warning - Do not forget to close() the adapter in onDestroy to stop the
      * loader thread
@@ -104,9 +101,10 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
      *             Per design only strings of local paths, Longs of thumb IDs,
      *             or URIs of remote media are supported
      */
-    public LazyLoadingAdapter(Context context, View view, int height, int width, ArrayList<E> pathsIDsOrUris, int size, boolean isImages)
-	    throws UnsupportedContentException {
-	if (pathsIDsOrUris != null) {
+    public LazyLoadingAdapter(Context context, View view, int height, int width, ArrayList<E> pathsIDsOrUris, int size, boolean isImages) throws UnsupportedContentException
+    {
+	if (pathsIDsOrUris != null)
+	{
 	    testData(pathsIDsOrUris);
 	    mPathsIDsOrUris = pathsIDsOrUris;
 	}
@@ -123,84 +121,83 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
 	mImageRetrieverThread = new RetrieverThread<E>(mContext, mHandler, this, mCache, mWidth, mHeight, mIsImages);
 	mImageRetrieverThread.start();
     }
-
-    private void testData(List<?> pathsOrIds) throws UnsupportedContentException {
-	for (Object object : pathsOrIds) {
+    private void testData(List<?> pathsOrIds) throws UnsupportedContentException
+    {
+	for (Object object : pathsOrIds)
+	{
 	    if (!(object instanceof Long) && !(object instanceof String) && !(object instanceof Uri))
-		throw new UnsupportedContentException("List content contains unsupported data. "
-			+ "This adapter accepts a List of String paths to images or video, "
+		throw new UnsupportedContentException("List content contains unsupported data. " + "This adapter accepts a List of String paths to images or video, "
 			+ "Long values referring to the thumbnail of a Gallery image/video, or Uri " + "locations of remote http content.");
 	}
     }
-
-    private void testView(View view) throws UnsupportedContentException {
+    private void testView(View view) throws UnsupportedContentException
+    {
 	if (!(view instanceof Gallery) && !(view instanceof AbsListView))
 	    throw new UnsupportedContentException("The supplied view can only be an AbsListView or a Gallery");
     }
-
     /**
      * @param pathOrId
      *            Your List items are used as the key for the LRU cache. Specify
      *            a particular item to remove that particular thumb from the LRU
      *            cache.
      */
-    public void removeFromCache(E pathIDOrUri) {
+    public void removeFromCache(E pathIDOrUri)
+    {
 	mCache.remove(pathIDOrUri);
     }
-
     /**
      * @param height
      *            Specify the desired height of the view your adapter will be
      *            filling.
      */
-    public void setImageHeight(int height) {
+    public void setImageHeight(int height)
+    {
 	mHeight = height;
     }
-
     /**
      * @param width
      *            Specify the desired width of the view your adapter will be
      *            filling.
      */
-    public void setImageWidth(int width) {
+    public void setImageWidth(int width)
+    {
 	mWidth = width;
     }
-
     /**
      * @param position
      *            Add the specified highlight color to the position. The default
      *            highlight color is yellow, use setHighlightColor() to change
      *            the value.
      */
-    public void addHighlight(int position) {
+    public void addHighlight(int position)
+    {
 	mAddHighlight.add(position);
     }
-
     /**
      * @param highlightColor
      *            Supply a Color value or use Color.Parse() to use a custom hex
      *            value.
      */
-    public void setHighlightColor(int highlightColor) {
+    public void setHighlightColor(int highlightColor)
+    {
 	mHightlightColor = highlightColor;
     }
-
     /**
      * @param position
      *            Remove the highlight from the specific item position.
      */
-    public void removeHighlight(int position) {
+    public void removeHighlight(int position)
+    {
 	mAddHighlight.remove((Object) position);
     }
-
     /**
      * Clear all highlighted position. You'll want to call
      * notifyDataSetChanged() afterwards.
      */
-    public void clearHighlights() {
+    public void clearHighlights()
+    {
 	mAddHighlight.clear();
     }
-
     /**
      * @param pathsOrIds
      *            A List of Strings, Long IDs for "Thumbnails.getThumbnail()"
@@ -215,11 +212,11 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
      *             Per design only strings of local paths, Longs of thumb IDs,
      *             or URIs of remote media are supported.
      */
-    public void setPathsIDsOrUris(ArrayList<E> pathsIDsOrUris) throws UnsupportedContentException {
+    public void setPathsIDsOrUris(ArrayList<E> pathsIDsOrUris) throws UnsupportedContentException
+    {
 	testData(pathsIDsOrUris);
 	mPathsIDsOrUris = pathsIDsOrUris;
     }
-
     /**
      * @param view
      *            Your AbsListView or your Gallery Widget.
@@ -227,38 +224,38 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
      *             Per design on AbsListViews and deprecated Gallery widgets are
      *             supported.
      */
-    public void setView(View view) throws UnsupportedContentException {
+    public void setView(View view) throws UnsupportedContentException
+    {
 	testView(view);
 	mView = view;
     }
-
     @Override
-    public int getCount() {
+    public int getCount()
+    {
 	return mPathsIDsOrUris.size();
     }
-
     @Override
-    public E getItem(int position) {
+    public E getItem(int position)
+    {
 	return mPathsIDsOrUris.get(position);
     }
-
     /**
      * This is absolutely mandatory to use in onDestroy() or wherever applicable
      * or appropriate. If this is not called you will leak the retriever thread.
      * Leakie is no goodie.
      */
-    public void close() {
+    public void close()
+    {
 	mImageRetrieverThread.stopThread();
     }
-
     /**
      * Clear the LRU cache of all images. You'll likely want to call
      * notifyDataSetChanged() afterwards.
      */
-    public void clearCache() {
+    public void clearCache()
+    {
 	mCache.evictAll();
     }
-
     /**
      * @param clearCacheCallback
      *            This method is used to clear your app's cache directory. The
@@ -271,79 +268,131 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
      *            clear the LRU cache using clearCache(), and call
      *            notifyDataSetChaged().
      */
-    public void clearCacheWithCallback(ClearCacheCallback clearCacheCallback) {
+    public void clearCacheWithCallback(ClearCacheCallback clearCacheCallback)
+    {
 	new PrivateClearCacheTask(mContext, clearCacheCallback).execute();
     }
-
+    /**
+     * @param degrees
+     *            Supply the degress to rotate all the supplied image
+     *            thumbnails. The rotation will not be cached, and will occur in
+     *            realtime, which may effect scrolling.
+     */
+    public void setRotation(int degrees)
+    {
+	mDegressRotation = degrees;
+    }
+    /**
+     * @return Get the currently set value for the rotation to apply.
+     */
+    public int getRotation()
+    {
+	return mDegressRotation;
+    }
     @Override
-    public long getItemId(int position) {
+    public long getItemId(int position)
+    {
 	return position;
     }
-
-    protected class ViewHolder {
+    protected class ViewHolder
+    {
 	ImageView image;
     }
-
     @SuppressWarnings("unchecked")
     @Override
-    public View getView(int position, View convertView, ViewGroup parent) {
-	if (convertView == null) {
-	    Log.d(LazyLoadingAdapter.class.getName(), "ConvertView null");
-	    mHolder = new ViewHolder();
-	    convertView = new ViewSwitcher(mContext);
-	    
-	    LinearLayout progressBarContainer = new LinearLayout(mContext);
-	    progressBarContainer.setLayoutParams(new LinearLayout.LayoutParams(mWidth, mHeight));
-	    progressBarContainer.setGravity(Gravity.CENTER);
-	    
-	    ProgressBar progress = new ProgressBar(mContext, null, android.R.attr.progressBarStyleSmall);
-	    progress.setLayoutParams(new LinearLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
-	    progressBarContainer.addView(progress);
-	    
-	    mHolder.image = new ImageView(mContext);
-	    mHolder.image.setScaleType(ScaleType.FIT_CENTER);
-	    mHolder.image.setLayoutParams(new LinearLayout.LayoutParams(mWidth, mWidth));
-	    ((ViewSwitcher) convertView).addView(progressBarContainer);
-	    ((ViewSwitcher) convertView).addView(mHolder.image);
-	    
-	    convertView.setTag(mHolder);
-	} else {
-	    Log.d(LazyLoadingAdapter.class.getName(), "ConvertView not null");
+    public View getView(int position, View convertView, ViewGroup parent)
+    {
+	if (convertView == null)
+	{
+	    convertView = processConvertView(convertView);
+	}
+	else
+	{
 	    mHolder = (ViewHolder) convertView.getTag();
 	}
-
-	//Process highlights
-	if (mAddHighlight.contains(position)) {
+	// Retrieve the image either from the cache or load it into the cache,
+	// then display accordingly
+	processHighlights(position);
+	retrieveImage((ViewSwitcher) convertView, position);
+	return convertView;
+    }
+    protected void processHighlights(int position)
+    {
+	if (mAddHighlight.contains(position))
+	{
 	    mHolder.image.setPadding(5, 5, 5, 5);
 	    mHolder.image.setBackgroundColor(mHightlightColor);
-	} else {
+	}
+	else
+	{
 	    mHolder.image.setPadding(0, 0, 0, 0);
 	    mHolder.image.setBackgroundColor(Color.parseColor("#00000000"));
 	}
-	
+    }
+    protected Bitmap processRotation(Bitmap bitmap)
+    {
+	if (getRotation() == 0 || (getRotation() % 360) == 0)
+	{
+	    return bitmap;
+	}
+	Matrix matrix = new Matrix();
+	matrix.setRotate(getRotation(), bitmap.getWidth() / 2, bitmap.getHeight() / 2);
+	return Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, false);
+    }
+    protected void retrieveImage(ViewSwitcher convertView, int position)
+    {
 	// To accommodate data change race conditions only process the view of
 	// the size of the data list of > the position requested
-	if (mPathsIDsOrUris.size() != 0 && mPathsIDsOrUris.size() > position) {
-	    ((ViewSwitcher) convertView).setDisplayedChild(LazyLoadingAdapter.PROGRESSBARINDEX);
-	    mImageRetrieverThread.loadImage(new QueueObject<E>(position, mPathsIDsOrUris.get(position), ((ViewSwitcher) convertView), mHolder.image));
+	if (mPathsIDsOrUris.size() != 0 && mPathsIDsOrUris.size() > position)
+	{
+	    convertView.setDisplayedChild(LazyLoadingAdapter.PROGRESSBARINDEX);
+	    mImageRetrieverThread.loadImage(new QueueObject<E>(position, mPathsIDsOrUris.get(position), convertView, mHolder.image));
 	}
-
+    }
+    protected View processConvertView(View convertView)
+    {
+	mHolder = new ViewHolder();
+	convertView = new ViewSwitcher(mContext);
+	LinearLayout progressBarContainer = new LinearLayout(mContext);
+	progressBarContainer = initProgressBarContainer(progressBarContainer);
+	mHolder.image = new ImageView(mContext);
+	mHolder.image.setScaleType(ScaleType.FIT_CENTER);
+	mHolder.image.setLayoutParams(new LinearLayout.LayoutParams(mWidth, mWidth));
+	((ViewSwitcher) convertView).addView(progressBarContainer);
+	((ViewSwitcher) convertView).addView(mHolder.image);
+	convertView.setTag(mHolder);
 	return convertView;
     }
-
+    // Add a progress bar to the progress bar container and ensure that it's
+    // centered accordingly
+    protected LinearLayout initProgressBarContainer(LinearLayout progressBarContainer)
+    {
+	progressBarContainer.setLayoutParams(new LinearLayout.LayoutParams(mWidth, mHeight));
+	progressBarContainer.setGravity(Gravity.CENTER);
+	ProgressBar progress = new ProgressBar(mContext, null, android.R.attr.progressBarStyleSmall);
+	progress.setLayoutParams(new LinearLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
+	progressBarContainer.addView(progress);
+	return progressBarContainer;
+    }
     @Override
-    public void updateImageInUI(final QueueObject<E> object, final Bitmap image) {
-	mHandler.post(new Runnable() {
-	    public void run() {
+    public void updateImageInUI(final QueueObject<E> object, final Bitmap image)
+    {
+	mHandler.post(new Runnable()
+	{
+	    public void run()
+	    {
 		// If the absView is scrolling fast by the time the image is
 		// retrieved it may no longer be on the screen
 		// This will alleviate posting an image to the respective view
 		// if the position is no longer visible
-		if (mView instanceof AbsListView && object.getPosition() >= ((AbsListView) mView).getFirstVisiblePosition() && object.getPosition() <= ((AbsListView) mView).getLastVisiblePosition()) {
-		    object.getImage().setImageBitmap(image);
+		if (mView instanceof AbsListView && object.getPosition() >= ((AbsListView) mView).getFirstVisiblePosition() && object.getPosition() <= ((AbsListView) mView).getLastVisiblePosition())
+		{
+		    object.getImage().setImageBitmap(processRotation(image));
 		    object.getViewSwitcher().setDisplayedChild(IMAGEVIEWINDEX);
-		} else if (mView instanceof Gallery) {
-		    object.getImage().setImageBitmap(image);
+		}
+		else if (mView instanceof Gallery)
+		{
+		    object.getImage().setImageBitmap(processRotation(image));
 		    object.getViewSwitcher().setDisplayedChild(IMAGEVIEWINDEX);
 		}
 	    }
