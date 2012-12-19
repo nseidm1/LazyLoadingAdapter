@@ -1,4 +1,5 @@
 package com.project.lazyloadingadapter.support;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
@@ -31,6 +32,8 @@ import android.provider.MediaStore;
 import android.provider.MediaStore.Images;
 import android.provider.MediaStore.Video;
 import android.widget.Toast;
+
+import com.project.lazyloadingadapter.LazyLoadingAdapter;
 import com.project.lazyloadingadapter.R;
 import com.project.lazyloadingadapter.helpers.Exif;
 import com.project.lazyloadingadapter.helpers.Log;
@@ -38,8 +41,8 @@ import com.project.lazyloadingadapter.objects.CustomArrayBlockingQueue;
 import com.project.lazyloadingadapter.objects.CustomLRUCache;
 import com.project.lazyloadingadapter.objects.LoadingCompleteCallback;
 import com.project.lazyloadingadapter.objects.QueueObject;
-public class RetrieverThread<E> extends Thread
-{
+
+public class RetrieverThread<E> extends Thread {
     private static final String TAG = RetrieverThread.class.getSimpleName();
     private Context mContext;
     private int mWidth;
@@ -55,18 +58,19 @@ public class RetrieverThread<E> extends Thread
     private NetworkInfo mWifiInfo;
     private NetworkInfo mWiMaxInfo;
     private LoadingCompleteCallback<E> mLoadingCompleteCallback;
+    private Object[] mLock = new Object[0];
     private CustomArrayBlockingQueue<E> mArrayBlockingQueue = new CustomArrayBlockingQueue<E>(200, true);
-    private class WaitingNetwork implements Runnable
-    {
+
+    private class WaitingNetwork implements Runnable {
 	@Override
-	public void run()
-	{
+	public void run() {
 	    if (mContext != null)
 		Toast.makeText(mContext, mContext.getResources().getString(R.string.waiting_network), Toast.LENGTH_SHORT).show();
 	}
     }
-    public RetrieverThread(Context context, Handler uiThreadHandler, LoadingCompleteCallback<E> loadingCompleteCallback, CustomLRUCache<E> cache, int width, int height, boolean isImages)
-    {
+
+    public RetrieverThread(Context context, Handler uiThreadHandler, LoadingCompleteCallback<E> loadingCompleteCallback, CustomLRUCache<E> cache, int width,
+	    int height, boolean isImages) {
 	mContext = context;
 	mCache = cache;
 	mWidth = width;
@@ -82,121 +86,107 @@ public class RetrieverThread<E> extends Thread
 	mOptions.inDither = true;
 	mConnectivityManager = ((ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE));
     }
+
     @Override
-    public void run()
-    {
+    public void run() {
 	Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
-	while (mAlive)
-	{
-	    try
-	    {
+	while (mAlive) {
+	    try {
 		QueueObject<E> object = mArrayBlockingQueue.take();
-		Thread.sleep(5);
-		// The following while loop is used to accommodate unexpected
-		// out of memory errors decoding the image file
-		// Pre-scaling is used, but wtf situations occur. 10 is overkill
-		// but...
-		boolean success = false; int counter = 0;
-		while (success == false && counter < 10 && object != null && object.getPathIDOrUri() != null)
-		{
-		    Bitmap thumbnail = null;
-		    try
-		    {
-			// If the cache does not contain the object retrieve the
-			// object and cache it
-			if (mCache.get(object.getPathIDOrUri()) == null)
-			{
-			    if (object.getPathIDOrUri() instanceof Uri)
-			    {
-				String path = object.getPathIDOrUri().toString();
-				File file = new File(mContext.getCacheDir(), path.substring(path.lastIndexOf("/") + 1));
-				if (!file.exists())
-				    processRemoteFileToLocalFile(object, file);
-				if (mIsImages)
-				    thumbnail = processImagePath(file.getPath(), object.getPathIDOrUri());
-				else
-				    thumbnail = processVideoPath(file.getPath(), object.getPathIDOrUri());
+		synchronized(mLock) {
+		    // The following while loop is used to accommodate unexpected
+		    // out of memory errors decoding the image file
+		    // Pre-scaling is used, but wtf situations occur. 10 is overkill
+		    // but...
+		    boolean success = false;
+		    int counter = 0;
+		    while (success == false && counter < 10 && object != null && object.getPathIDOrUri() != null) {
+			Bitmap temp = null;
+			try {
+			    // If the cache does not contain the object retrieve the
+			    // object and cache it
+			    synchronized(mCache) {
+				temp = mCache.get(object.getPathIDOrUri());
 			    }
-			    else if (object.getPathIDOrUri() instanceof Long)
-			    {
-				if (mIsImages)
-				    thumbnail = processImageThumb((Long) object.getPathIDOrUri(), object.getPathIDOrUri());
-				else
-				    thumbnail = processVideoThumb((Long) object.getPathIDOrUri(), object.getPathIDOrUri());
+			    if (temp == null) {
+				Log.d(LazyLoadingAdapter.class.getName(), "Retrieving Image from Disk");
+				if (object.getPathIDOrUri() instanceof Uri) {
+				    String path = object.getPathIDOrUri().toString();
+				    File file = new File(mContext.getCacheDir(), path.substring(path.lastIndexOf("/") + 1));
+				    if (!file.exists())
+					processRemoteFileToLocalFile(object, file);
+				    if (mIsImages)
+					temp = processImagePath(file.getPath(), object.getPathIDOrUri());
+				    else
+					temp = processVideoPath(file.getPath(), object.getPathIDOrUri());
+				} else if (object.getPathIDOrUri() instanceof Long) {
+				    if (mIsImages)
+					temp = processImageThumb((Long) object.getPathIDOrUri(), object.getPathIDOrUri());
+				    else
+					temp = processVideoThumb((Long) object.getPathIDOrUri(), object.getPathIDOrUri());
+				} else {
+				    if (mIsImages)
+					temp = processImagePath((String) object.getPathIDOrUri(), object.getPathIDOrUri());
+				    else
+					temp = processVideoPath((String) object.getPathIDOrUri(), object.getPathIDOrUri());
+				}
 			    }
-			    else
-			    {
-				if (mIsImages)
-				    thumbnail = processImagePath((String) object.getPathIDOrUri(), object.getPathIDOrUri());
-				else
-				    thumbnail = processVideoPath((String) object.getPathIDOrUri(), object.getPathIDOrUri());
+			    // If the cache contains the object just update it in
+			    // the UI
+			    else {
+				Log.d(LazyLoadingAdapter.class.getName(), "Retrieving Image from Cache");
 			    }
+			    mLoadingCompleteCallback.updateImageInUI(object, temp);
+			    success = true;
+			} catch (OutOfMemoryError e) {
+			    // The sample size will continuously increase up until
+			    // 10. This methodology accommodates out of memory
+			    // issues
+			    // associated with image loading. 10 is overkill.
+			    // Success = true is not set here to recycle through the
+			    // while loop.
+			    System.gc();
+			    mOptions.inSampleSize++;
+			    counter++;
+			    Log.e(TAG, "Out of memory decoding image");
+			} catch (Throwable e) {
+			    // Cache a missing image placeholder, and update the UI
+			    temp = cacheMissingImagePlaceholder(object);
+			    mLoadingCompleteCallback.updateImageInUI(object, temp);
+			    e.printStackTrace();
+			    Log.e(TAG, "Uri syntax exception decoding image");
+			    success = true;
 			}
-			// If the cache contains the object just update it in
-			// the UI
-			else
-			{
-			    thumbnail = mCache.get(object.getPathIDOrUri());
-			}
-			mLoadingCompleteCallback.updateImageInUI(object, thumbnail);
-			success = true;
 		    }
-		    catch (OutOfMemoryError e)
-		    {
-			// The sample size will continuously increase up until
-			// 10. This methodology accommodates out of memory
-			// issues
-			// associated with image loading. 10 is overkill.
-			// Success = true is not set here to recycle through the
-			// while loop.
-			System.gc();
-			mOptions.inSampleSize++;
-			counter++;
-			Log.e(TAG, "Out of memory decoding image");
-		    }
-		    catch (Throwable e)
-		    {
-			// Cache a missing image placeholder, and update the UI
-			thumbnail = cacheMissingImagePlaceholder(object);
-			mLoadingCompleteCallback.updateImageInUI(object, thumbnail);
-			e.printStackTrace();
-			Log.e(TAG, "Uri syntax exception decoding image");
-			success = true;
-		    }
-		}
-	    }
-	    catch (InterruptedException e)
-	    {
+		}	
+	    } catch (InterruptedException e) {
 		// Array blocking queue interrupted
 		Log.e(TAG, "Image loader thread interrupted while decoding an image, thread may still be still alive");
 	    }
 	}
     }
-    private Bitmap cacheMissingImagePlaceholder(QueueObject<E> object)
-    {
+
+    private Bitmap cacheMissingImagePlaceholder(QueueObject<E> object) {
 	Bitmap temp = null;
 	boolean success = false;
 	int counter = 0;
-	while (success == false && counter < 10)
-	{
-	    try
-	    {
+	while (success == false && counter < 10) {
+	    try {
 		temp = ThumbnailUtils.extractThumbnail(BitmapFactory.decodeResource(mContext.getResources(), R.drawable.missing_file, mOptions), mWidth, mHeight, ThumbnailUtils.OPTIONS_RECYCLE_INPUT);
-		mCache.put(object.getPathIDOrUri(), temp);
 		success = true;
-	    }
-	    catch (OutOfMemoryError e)
-	    {
+	    } catch (OutOfMemoryError e) {
 		System.gc();
 		counter++;
 	    }
 	}
+	synchronized(mCache) {
+	    mCache.put(object.getPathIDOrUri(), temp);
+	}
 	return temp;
     }
-    private void processRemoteFileToLocalFile(QueueObject<E> object, File file) throws IOException, URISyntaxException, InterruptedException, NullPointerException
-    {
-	while (!checkNetworkState(mContext))
-	{
+
+    private void processRemoteFileToLocalFile(QueueObject<E> object, File file) throws IOException, URISyntaxException, InterruptedException, NullPointerException {
+	while (!checkNetworkState(mContext)) {
 	    Thread.sleep(3000);
 	    mUiThreadHandler.post(mWaitingNetwork);
 	}
@@ -210,8 +200,7 @@ public class RetrieverThread<E> extends Thread
 	BufferedOutputStream bOut = new BufferedOutputStream(fOut, 2048);
 	int n = 0;
 	byte[] buffer = new byte[2048];
-	while ((n = bIn.read(buffer, 0, 2048)) != -1)
-	{
+	while ((n = bIn.read(buffer, 0, 2048)) != -1) {
 	    bOut.write(buffer, 0, n);
 	}
 	// Close all streams to release resources
@@ -223,8 +212,8 @@ public class RetrieverThread<E> extends Thread
 	instream.close();
 	bufHttpEntity.consumeContent();
     }
-    private HttpEntity setupHttpEntity(QueueObject<E> object) throws URISyntaxException, ClientProtocolException, IOException
-    {
+
+    private HttpEntity setupHttpEntity(QueueObject<E> object) throws URISyntaxException, ClientProtocolException, IOException {
 	HttpGet httpGet = new HttpGet();
 	httpGet.setURI(new URI(object.getPathIDOrUri().toString()));
 	HttpClient httpclient = new DefaultHttpClient();
@@ -232,132 +221,115 @@ public class RetrieverThread<E> extends Thread
 	HttpEntity entity = response.getEntity();
 	return entity;
     }
-    private Bitmap processImageThumb(Long id, E pathIDOrUri) throws NullPointerException, OutOfMemoryError, IOException
-    {
+
+    private Bitmap processImageThumb(Long id, E pathIDOrUri) throws NullPointerException, OutOfMemoryError, IOException {
 	// No need to prescale, it's gonna be tiny already
-	Bitmap temp = ThumbnailUtils.extractThumbnail(MediaStore.Images.Thumbnails.getThumbnail(mContext.getContentResolver(), id, MediaStore.Images.Thumbnails.MICRO_KIND, null), mWidth, mHeight,
-		ThumbnailUtils.OPTIONS_RECYCLE_INPUT);
+	Bitmap temp = ThumbnailUtils.extractThumbnail(MediaStore.Images.Thumbnails.getThumbnail(mContext.getContentResolver(), id, MediaStore.Images.Thumbnails.MICRO_KIND, null), mWidth, mHeight, ThumbnailUtils.OPTIONS_RECYCLE_INPUT);
 	// If the thumb is null try and get it directly from the full sized
 	// media
-	if (temp == null)
-	{
-	    Cursor cursor = mContext.getContentResolver().query(Uri.withAppendedPath(Images.Media.EXTERNAL_CONTENT_URI, Long.toString(id)), new String[]
-	    { Images.Media.DATA }, null, null, null);
+	if (temp == null) {
+	    Cursor cursor = mContext.getContentResolver().query(Uri.withAppendedPath(Images.Media.EXTERNAL_CONTENT_URI, Long.toString(id)),  new String[] { Images.Media.DATA }, null, null, null);
 	    if (cursor != null && cursor.moveToFirst())
-	    {
 		temp = processImagePath(cursor.getString(cursor.getColumnIndex(Images.Media.DATA)), pathIDOrUri);
-	    }
 	    closeCursor(cursor);
 	}
-	if (temp == null)
-	{
-	    Cursor cursor = mContext.getContentResolver().query(Uri.withAppendedPath(Images.Media.INTERNAL_CONTENT_URI, Long.toString(id)), new String[]
-	    { Images.Media.DATA }, null, null, null);
+	if (temp == null) {
+	    Cursor cursor = mContext.getContentResolver().query(Uri.withAppendedPath(Images.Media.INTERNAL_CONTENT_URI, Long.toString(id)), new String[] { Images.Media.DATA }, null, null, null);
 	    if (cursor != null && cursor.moveToFirst())
-	    {
 		temp = processImagePath(cursor.getString(cursor.getColumnIndex(Images.Media.DATA)), pathIDOrUri);
-	    }
 	    closeCursor(cursor);
 	}
-	mCache.put(pathIDOrUri, temp);
+	synchronized(mCache) {
+	    mCache.put(pathIDOrUri, temp);
+	}
 	return temp;
     }
-    private Bitmap processVideoThumb(Long id, E pathIDOrUri) throws NullPointerException, OutOfMemoryError
-    {
+
+    private Bitmap processVideoThumb(Long id, E pathIDOrUri) throws NullPointerException, OutOfMemoryError {
 	// No need to prescale, it's gonna be tiny already
-	Bitmap temp = ThumbnailUtils.extractThumbnail(MediaStore.Video.Thumbnails.getThumbnail(mContext.getContentResolver(), id, MediaStore.Images.Thumbnails.MICRO_KIND, null), mWidth, mHeight,
-		ThumbnailUtils.OPTIONS_RECYCLE_INPUT);
+	Bitmap temp = ThumbnailUtils.extractThumbnail(MediaStore.Video.Thumbnails.getThumbnail(mContext.getContentResolver(), id,
+		MediaStore.Images.Thumbnails.MICRO_KIND, null), mWidth, mHeight, ThumbnailUtils.OPTIONS_RECYCLE_INPUT);
 	// If the thumb is null try and get it directly from the full sized
 	// media
-	if (temp == null)
-	{
-	    Cursor cursor = mContext.getContentResolver().query(Uri.withAppendedPath(Video.Media.EXTERNAL_CONTENT_URI, Long.toString(id)), new String[]
-	    { Video.Media.DATA }, null, null, null);
+	if (temp == null) {
+	    Cursor cursor = mContext.getContentResolver().query(Uri.withAppendedPath(Video.Media.EXTERNAL_CONTENT_URI, Long.toString(id)), new String[] { Video.Media.DATA }, null, null, null);
 	    if (cursor != null && cursor.moveToFirst())
-	    {
 		temp = processVideoPath(cursor.getString(cursor.getColumnIndex(Video.Media.DATA)), pathIDOrUri);
-	    }
 	    closeCursor(cursor);
 	}
-	if (temp == null)
-	{
-	    Cursor cursor = mContext.getContentResolver().query(Uri.withAppendedPath(Video.Media.INTERNAL_CONTENT_URI, Long.toString(id)), new String[]
-	    { Video.Media.DATA }, null, null, null);
+	if (temp == null) {
+	    Cursor cursor = mContext.getContentResolver().query(Uri.withAppendedPath(Video.Media.INTERNAL_CONTENT_URI, Long.toString(id)), new String[] { Video.Media.DATA }, null, null, null);
 	    if (cursor != null && cursor.moveToFirst())
-	    {
 		temp = processVideoPath(cursor.getString(cursor.getColumnIndex(Video.Media.DATA)), pathIDOrUri);
-	    }
 	    closeCursor(cursor);
 	}
-	mCache.put(pathIDOrUri, temp);
+	synchronized(mCache) {
+	    mCache.put(pathIDOrUri, temp);
+	}
 	return temp;
     }
-    private Bitmap processVideoPath(String path, E pathIDOrUri) throws NullPointerException, OutOfMemoryError
-    {
-	Bitmap temp = ThumbnailUtils.extractThumbnail(ThumbnailUtils.createVideoThumbnail(path, MediaStore.Video.Thumbnails.MINI_KIND), mWidth, mHeight, ThumbnailUtils.OPTIONS_RECYCLE_INPUT);
-	mCache.put(pathIDOrUri, temp);
+
+    private Bitmap processVideoPath(String path, E pathIDOrUri) throws NullPointerException, OutOfMemoryError {
+	Bitmap temp = ThumbnailUtils.extractThumbnail(ThumbnailUtils.createVideoThumbnail(path, MediaStore.Video.Thumbnails.MINI_KIND), mWidth, mHeight,
+		ThumbnailUtils.OPTIONS_RECYCLE_INPUT);
+	synchronized(mCache) {
+	    mCache.put(pathIDOrUri, temp);
+	}
 	return temp;
     }
-    private Bitmap processImagePath(String path, E pathIDOrUri) throws NullPointerException, OutOfMemoryError, IOException
-    {
-	// Prescale image for known resolutions that will cause out of memory situations
+
+    private Bitmap processImagePath(String path, E pathIDOrUri) throws NullPointerException, OutOfMemoryError, IOException {
+	// Prescale image for known resolutions that will cause out of memory
+	// situations
 	preScaleImage(path);
-	
 	byte[] tempBytes = getBitmapBytes(path);
 	Bitmap tempBitmap = BitmapFactory.decodeByteArray(tempBytes, 0, tempBytes.length, mOptions);
 	int currentRotation = Exif.getOrientation(tempBytes);
 	if (currentRotation == 0 || (currentRotation % 360) == 0) {
 	    return tempBitmap;
 	}
-	
-	//Rotate based on EXIF data
+	// Rotate based on EXIF data
 	Matrix matrix = new Matrix();
 	matrix.setRotate(currentRotation, tempBitmap.getWidth() / 2, tempBitmap.getHeight() / 2);
-	
 	Bitmap temp = ThumbnailUtils.extractThumbnail(Bitmap.createBitmap(tempBitmap, 0, 0, tempBitmap.getWidth(), tempBitmap.getHeight(), matrix, true), mWidth, mHeight, ThumbnailUtils.OPTIONS_RECYCLE_INPUT);
-	mCache.put(pathIDOrUri, temp);
+	synchronized(mCache) {
+	    mCache.put(pathIDOrUri, temp);
+	}
 	return temp;
     }
- 
-    private byte[] getBitmapBytes(String path) throws IOException
-    {
+
+    private byte[] getBitmapBytes(String path) throws IOException {
 	File file = new File(path);
 	InputStream is = new FileInputStream(file);
 	ByteArrayOutputStream bos = new ByteArrayOutputStream();
 	byte[] b = new byte[1024];
 	int bytesRead;
 	while ((bytesRead = is.read(b)) != -1) {
-	   bos.write(b, 0, bytesRead);
+	    bos.write(b, 0, bytesRead);
 	}
 	return bos.toByteArray();
     }
 
-    public synchronized void stopThread()
-    {
+    public synchronized void stopThread() {
 	// Set the while loop boolean to false, and add a KILL object to the
 	// queue to unblock it if necessary
 	mAlive = false;
 	if (mArrayBlockingQueue.isEmpty())
 	    mArrayBlockingQueue.offer(new QueueObject<E>(1, null, null, null));
     }
+
     /**
      * @param QueueObject
      * @throws InterruptedException
      */
-    public void loadImage(final QueueObject<E> object)
-    {
+    public void loadImage(final QueueObject<E> object) {
 	mArrayBlockingQueue.remove(object);
-	try
-	{
+	try {
 	    mArrayBlockingQueue.offer(object, 2000, TimeUnit.MILLISECONDS);
-	}
-	catch (InterruptedException e)
-	{
-	    mUiThreadHandler.post(new Runnable()
-	    {
+	} catch (InterruptedException e) {
+	    mUiThreadHandler.post(new Runnable() {
 		@Override
-		public void run()
-		{
+		public void run() {
 		    if (mContext != null)
 			Toast.makeText(mContext, mContext.getResources().getString(R.string.overload), Toast.LENGTH_SHORT).show();
 		}
@@ -365,39 +337,33 @@ public class RetrieverThread<E> extends Thread
 	    e.printStackTrace();
 	}
     }
-    private void preScaleImage(String path)
-    {
+
+    private void preScaleImage(String path) {
 	// Always start with a sample size of 1
 	mOptions.inSampleSize = 1;
 	mOptions.inJustDecodeBounds = true;
 	BitmapFactory.decodeFile(path, mOptions);
-	if (mOptions.outWidth >= 960 && mOptions.outWidth < 1600)
-	{
+	if (mOptions.outWidth >= 960 && mOptions.outWidth < 1600) {
 	    mOptions.inSampleSize = 2;
-	}
-	else if (mOptions.outWidth >= 1600 && mOptions.outWidth < 1920)
-	{
+	} else if (mOptions.outWidth >= 1600 && mOptions.outWidth < 1920) {
 	    mOptions.inSampleSize = 3;
-	}
-	else if (mOptions.outWidth >= 1920)
-	{
+	} else if (mOptions.outWidth >= 1920) {
 	    mOptions.inSampleSize = 4;
 	}
 	mOptions.inJustDecodeBounds = false;
     }
-    private boolean checkNetworkState(Context context)
-    {
+
+    private boolean checkNetworkState(Context context) {
 	// Check every aspect of wifi and mobile connections
 	mMobileInfo = mConnectivityManager.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
 	mWifiInfo = mConnectivityManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
 	mWiMaxInfo = mConnectivityManager.getNetworkInfo(ConnectivityManager.TYPE_WIMAX);
-	if ((mWiMaxInfo != null && mWiMaxInfo.isAvailable()) || (mWiMaxInfo != null && mWiMaxInfo.isConnected()) || (mWifiInfo != null && mWifiInfo.isAvailable())
-		|| (mWifiInfo != null && mWifiInfo.isConnected()) || (mMobileInfo != null && mMobileInfo.isAvailable()) || (mMobileInfo != null && mMobileInfo.isConnected()))
+	if ((mWiMaxInfo != null && mWiMaxInfo.isAvailable()) || (mWiMaxInfo != null && mWiMaxInfo.isConnected()) || (mWifiInfo != null && mWifiInfo.isAvailable()) || (mWifiInfo != null && mWifiInfo.isConnected()) || (mMobileInfo != null && mMobileInfo.isAvailable()) || (mMobileInfo != null && mMobileInfo.isConnected()))
 	    return true;
 	return false;
     }
-    private void closeCursor(Cursor cursor)
-    {
+
+    private void closeCursor(Cursor cursor) {
 	if (cursor != null && !cursor.isClosed())
 	    cursor.close();
     }
