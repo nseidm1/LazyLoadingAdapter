@@ -90,6 +90,7 @@ public class RetrieverThread<E> extends Thread {
 	while (mAlive) {
 	    try {
 		QueueObject<E> object = mArrayBlockingQueue.take();
+		Thread.sleep(5);
 		// The following while loop is used to accommodate unexpected
 		// out of memory errors decoding the image file
 		// Pre-scaling is used, but wtf situations occur. 10 is overkill

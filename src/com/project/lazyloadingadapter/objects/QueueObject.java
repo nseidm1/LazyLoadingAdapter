@@ -37,7 +37,7 @@ public class QueueObject<E> {
     public boolean equals(Object object) {
 	if (!(object instanceof QueueObject))
 	    return false;
-	if (((QueueObject<E>) object).mViewSwitcher == mViewSwitcher) {
+	if (((QueueObject<E>) object).getImage() == mImageView) {
 	    return true;
 	}
 	return false;
