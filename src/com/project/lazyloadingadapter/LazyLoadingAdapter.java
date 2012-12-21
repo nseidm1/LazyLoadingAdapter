@@ -98,7 +98,7 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
      *            from the phone's Image/Video content provider, or URIs of http
      *            addresses
      * @param size
-     *            Specify the size of the LRU cache in megabytes
+     *            Specify the size of the LRU cache in bytes
      * @param isImages
      *            If a List of String paths are provided are they image files or
      *            video files? If a List of Long IDs is provided, are they for
@@ -119,11 +119,11 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
 	mWidth = width;
 	mHeight = height;
 	mIsImages = isImages;
-	mCache = new CustomLRUCache<E>(size * 1024 * 1024);
+	mCache = new CustomLRUCache<E>(size);
 	// Provide the loader thread with some info beforehand including the
 	// cache, width, and height. The dimensions of the
 	// desired thumbnail are needed for decoding purposes
-	mImageRetrieverThread = new RetrieverThread<E>(mContext, mHandler, this, mCache, mWidth, mHeight, mIsImages);
+	mImageRetrieverThread = new RetrieverThread<E>(mContext, mHandler, this, mWidth, mHeight, mIsImages);
 	mImageRetrieverThread.start();
     }
 
@@ -315,7 +315,16 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
 	// Retrieve the image either from the cache or load it into the cache,
 	// then display accordingly
 	processHighlights(position);
-	retrieveImage((ViewSwitcher) convertView, position);
+	Bitmap image = null;
+	if (mPathsIDsOrUris.get(position) != null)
+	    image = mCache.get(mPathsIDsOrUris.get(position));
+	if (image == null) {
+	    ((ViewSwitcher)convertView).setDisplayedChild(LazyLoadingAdapter.PROGRESSBARINDEX);
+	    retrieveImage((ViewSwitcher) convertView, position);
+	} else {
+	    ((ViewSwitcher)convertView).setDisplayedChild(LazyLoadingAdapter.IMAGEVIEWINDEX);
+	    mHolder.image.setImageBitmap(image);
+	}
 	return convertView;
     }
 
@@ -342,7 +351,6 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
 	// To accommodate data change race conditions only process the view of
 	// the size of the data list of > the position requested
 	if (mPathsIDsOrUris.size() != 0 && mPathsIDsOrUris.size() > position) {
-	    convertView.setDisplayedChild(LazyLoadingAdapter.PROGRESSBARINDEX);
 	    mImageRetrieverThread.loadImage(new QueueObject<E>(position, mPathsIDsOrUris.get(position), convertView, mHolder.image));
 	}
     }
@@ -380,6 +388,8 @@ public class LazyLoadingAdapter<E> extends BaseAdapter implements LoadingComplet
 		// retrieved it may no longer be on the screen
 		// This will alleviate posting an image to the respective view
 		// if the position is no longer visible
+		if (object.getPathIDOrUri() != null && image != null)
+		    mCache.put(object.getPathIDOrUri(), image);
 		if ((mView instanceof GridView || mView instanceof ListView) && 
 		    object.getPosition() >= ((AbsListView) mView).getFirstVisiblePosition() && 
 		    object.getPosition() <= ((AbsListView) mView).getLastVisiblePosition()) {

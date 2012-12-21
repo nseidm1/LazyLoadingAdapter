@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.concurrent.TimeUnit;
+
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
@@ -18,6 +19,7 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.entity.BufferedHttpEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
+
 import android.content.Context;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -32,11 +34,11 @@ import android.provider.MediaStore;
 import android.provider.MediaStore.Images;
 import android.provider.MediaStore.Video;
 import android.widget.Toast;
+
 import com.project.lazyloadingadapter.R;
 import com.project.lazyloadingadapter.helpers.Exif;
 import com.project.lazyloadingadapter.helpers.Log;
 import com.project.lazyloadingadapter.objects.CustomArrayBlockingQueue;
-import com.project.lazyloadingadapter.objects.CustomLRUCache;
 import com.project.lazyloadingadapter.objects.LoadingCompleteCallback;
 import com.project.lazyloadingadapter.objects.QueueObject;
 
@@ -47,7 +49,6 @@ public class RetrieverThread<E> extends Thread {
     private int mHeight;
     private boolean mIsImages;
     private boolean mAlive = true;
-    private CustomLRUCache<E> mCache;
     private BitmapFactory.Options mOptions;
     private Handler mUiThreadHandler;
     private WaitingNetwork mWaitingNetwork;
@@ -66,10 +67,8 @@ public class RetrieverThread<E> extends Thread {
 	}
     }
 
-    public RetrieverThread(Context context, Handler uiThreadHandler, LoadingCompleteCallback<E> loadingCompleteCallback, CustomLRUCache<E> cache, int width,
-	    int height, boolean isImages) {
+    public RetrieverThread(Context context, Handler uiThreadHandler, LoadingCompleteCallback<E> loadingCompleteCallback, int width, int height, boolean isImages) {
 	mContext = context;
-	mCache = cache;
 	mWidth = width;
 	mHeight = height;
 	mIsImages = isImages;
@@ -90,7 +89,7 @@ public class RetrieverThread<E> extends Thread {
 	while (mAlive) {
 	    try {
 		QueueObject<E> object = mArrayBlockingQueue.take();
-		Thread.sleep(5);
+		Thread.sleep(8);
 		// The following while loop is used to accommodate unexpected
 		// out of memory errors decoding the image file
 		// Pre-scaling is used, but wtf situations occur. 10 is overkill
@@ -100,34 +99,25 @@ public class RetrieverThread<E> extends Thread {
 		while (success == false && counter < 10 && object != null && object.getPathIDOrUri() != null) {
 		    Bitmap thumbnail = null;
 		    try {
-			// If the cache does not contain the object retrieve the
-			// object and cache it
-			if (mCache.get(object.getPathIDOrUri()) == null) {
-			    if (object.getPathIDOrUri() instanceof Uri) {
-				String path = object.getPathIDOrUri().toString();
-				File file = new File(mContext.getCacheDir(), path.substring(path.lastIndexOf("/") + 1));
-				if (!file.exists())
-				    processRemoteFileToLocalFile(object, file);
-				if (mIsImages)
-				    thumbnail = processImagePath(file.getPath(), object.getPathIDOrUri());
-				else
-				    thumbnail = processVideoPath(file.getPath(), object.getPathIDOrUri());
-			    } else if (object.getPathIDOrUri() instanceof Long) {
-				if (mIsImages)
-				    thumbnail = processImageThumb((Long) object.getPathIDOrUri(), object.getPathIDOrUri());
-				else
-				    thumbnail = processVideoThumb((Long) object.getPathIDOrUri(), object.getPathIDOrUri());
-			    } else {
-				if (mIsImages)
-				    thumbnail = processImagePath((String) object.getPathIDOrUri(), object.getPathIDOrUri());
-				else
-				    thumbnail = processVideoPath((String) object.getPathIDOrUri(), object.getPathIDOrUri());
-			    }
-			}
-			// If the cache contains the object just update it in
-			// the UI
-			else {
-			    thumbnail = mCache.get(object.getPathIDOrUri());
+			if (object.getPathIDOrUri() instanceof Uri) {
+			    String path = object.getPathIDOrUri().toString();
+			    File file = new File(mContext.getCacheDir(), path.substring(path.lastIndexOf("/") + 1));
+			    if (!file.exists())
+				processRemoteFileToLocalFile(object, file);
+			    if (mIsImages)
+				thumbnail = processImagePath(file.getPath(), object.getPathIDOrUri());
+			    else
+				thumbnail = processVideoPath(file.getPath(), object.getPathIDOrUri());
+			} else if (object.getPathIDOrUri() instanceof Long) {
+			    if (mIsImages)
+				thumbnail = processImageThumb((Long) object.getPathIDOrUri(), object.getPathIDOrUri());
+			    else
+				thumbnail = processVideoThumb((Long) object.getPathIDOrUri(), object.getPathIDOrUri());
+			} else {
+			    if (mIsImages)
+				thumbnail = processImagePath((String) object.getPathIDOrUri(), object.getPathIDOrUri());
+			    else
+				thumbnail = processVideoPath((String) object.getPathIDOrUri(), object.getPathIDOrUri());
 			}
 			mLoadingCompleteCallback.updateImageInUI(object, thumbnail);
 			success = true;
@@ -166,7 +156,6 @@ public class RetrieverThread<E> extends Thread {
 	    try {
 		temp = ThumbnailUtils.extractThumbnail(BitmapFactory.decodeResource(mContext.getResources(), R.drawable.missing_file, mOptions), mWidth,
 			mHeight, ThumbnailUtils.OPTIONS_RECYCLE_INPUT);
-		mCache.put(object.getPathIDOrUri(), temp);
 		success = true;
 	    } catch (OutOfMemoryError e) {
 		System.gc();
@@ -236,7 +225,6 @@ public class RetrieverThread<E> extends Thread {
 	    }
 	    closeCursor(cursor);
 	}
-	mCache.put(pathIDOrUri, temp);
 	return temp;
     }
 
@@ -262,14 +250,12 @@ public class RetrieverThread<E> extends Thread {
 	    }
 	    closeCursor(cursor);
 	}
-	mCache.put(pathIDOrUri, temp);
 	return temp;
     }
 
     private Bitmap processVideoPath(String path, E pathIDOrUri) throws NullPointerException, OutOfMemoryError {
 	Bitmap temp = ThumbnailUtils.extractThumbnail(ThumbnailUtils.createVideoThumbnail(path, MediaStore.Video.Thumbnails.MINI_KIND), mWidth, mHeight,
 		ThumbnailUtils.OPTIONS_RECYCLE_INPUT);
-	mCache.put(pathIDOrUri, temp);
 	return temp;
     }
 
@@ -288,7 +274,6 @@ public class RetrieverThread<E> extends Thread {
 	matrix.setRotate(currentRotation, tempBitmap.getWidth() / 2, tempBitmap.getHeight() / 2);
 	Bitmap temp = ThumbnailUtils.extractThumbnail(Bitmap.createBitmap(tempBitmap, 0, 0, tempBitmap.getWidth(), tempBitmap.getHeight(), matrix, true),
 		mWidth, mHeight, ThumbnailUtils.OPTIONS_RECYCLE_INPUT);
-	mCache.put(pathIDOrUri, temp);
 	return temp;
     }
 
@@ -301,6 +286,8 @@ public class RetrieverThread<E> extends Thread {
 	while ((bytesRead = is.read(b)) != -1) {
 	    bos.write(b, 0, bytesRead);
 	}
+	if (is != null) 
+	    is.close();
 	return bos.toByteArray();
     }
 
