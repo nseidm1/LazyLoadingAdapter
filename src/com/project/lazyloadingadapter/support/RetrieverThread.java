@@ -136,7 +136,6 @@ public class RetrieverThread<E> extends Thread {
 			// Cache a missing image placeholder, and update the UI
 			thumbnail = cacheMissingImagePlaceholder(object);
 			mLoadingCompleteCallback.updateImageInUI(object, thumbnail);
-			e.printStackTrace();
 			Log.e(TAG, "Uri syntax exception decoding image");
 			success = true;
 		    }
