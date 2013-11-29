@@ -154,8 +154,11 @@ public class RetrieverThread<E> extends Thread {
 	int counter = 0;
 	while (success == false && counter < 10) {
 	    try {
-		temp = ThumbnailUtils.extractThumbnail(BitmapFactory.decodeResource(mContext.getResources(), R.drawable.missing_file, mOptions), mWidth,
-			mHeight, ThumbnailUtils.OPTIONS_RECYCLE_INPUT);
+		if (new File(object.getPathIDOrUri() + ".lock").exists()) {
+		    temp = BitmapFactory.decodeResource(mContext.getResources(), R.drawable.lock);
+		} else {
+		    temp = ThumbnailUtils.extractThumbnail(BitmapFactory.decodeResource(mContext.getResources(), R.drawable.missing_file, mOptions), mWidth, mHeight, ThumbnailUtils.OPTIONS_RECYCLE_INPUT);
+		}
 		success = true;
 	    } catch (OutOfMemoryError e) {
 		System.gc();
