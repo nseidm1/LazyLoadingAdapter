@@ -18,7 +18,6 @@ package com.project.lazyloadingadapter.helpers;
 import android.util.Log;
 
 public class Exif {
-    private static final String TAG = "CameraExif";
 
     // Returns the degrees in clockwise. Values are 0, 90, 180, or 270.
     public static int getOrientation(byte[] jpeg) {
@@ -46,7 +45,6 @@ public class Exif {
 	    // Get the length and check if it is reasonable.
 	    length = pack(jpeg, offset, 2, false);
 	    if (length < 2 || offset + length > jpeg.length) {
-		Log.e(TAG, "Invalid length");
 		return 0;
 	    }
 	    // Break if the marker is EXIF in APP1.
@@ -64,14 +62,12 @@ public class Exif {
 	    // Identify the byte order.
 	    int tag = pack(jpeg, offset, 4, false);
 	    if (tag != 0x49492A00 && tag != 0x4D4D002A) {
-		Log.e(TAG, "Invalid byte order");
 		return 0;
 	    }
 	    boolean littleEndian = (tag == 0x49492A00);
 	    // Get the offset and check if it is reasonable.
 	    int count = pack(jpeg, offset + 4, 4, littleEndian) + 2;
 	    if (count < 10 || count > length) {
-		Log.e(TAG, "Invalid offset");
 		return 0;
 	    }
 	    offset += count;
@@ -94,14 +90,12 @@ public class Exif {
 		    case 8:
 			return 270;
 		    }
-		    Log.i(TAG, "Unsupported orientation");
 		    return 0;
 		}
 		offset += 12;
 		length -= 12;
 	    }
 	}
-	Log.i(TAG, "Orientation not found");
 	return 0;
     }
 
