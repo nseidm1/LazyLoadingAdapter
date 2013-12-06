@@ -5,6 +5,7 @@ import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -261,7 +262,9 @@ public class RetrieverThread<E> extends Thread {
 	return temp;
     }
 
-    private Bitmap processImagePath(String path, E pathIDOrUri) throws NullPointerException, OutOfMemoryError, IOException {
+    private Bitmap processImagePath(String path, E pathIDOrUri) throws NullPointerException, OutOfMemoryError, IOException, FileNotFoundException {
+	if (!new File(path).exists())
+	    throw new FileNotFoundException();
 	// Prescale image for known resolutions that will cause out of memory
 	// situations
 	preScaleImage(path);
